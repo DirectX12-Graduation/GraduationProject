@@ -303,14 +303,17 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	DXGI_FORMAT pdxgiRtvFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
 
-	//m_nShaders = 1;
-	//m_ppShaders = new CShader * [m_nShaders];
+	m_nShaders = 1;
+	m_ppShaders = new CShader * [m_nShaders];
 
-	//CObjectsShader* pObjectsShader = new CObjectsShader();
-	//pObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
-	//pObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
-	//m_ppShaders[0] = pObjectsShader;
+	CObjectsShader* pObjectsShader = new CObjectsShader();
+	pObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	pObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
+	m_ppShaders[0] = pObjectsShader;
 
+	m_pShadowShader = new CPlanarShadowShader(pObjectShader, m_pLights->m_pLights);
+	m_pShadowShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	m_pShadowShader->BuildObjects(pd3dDevice, pd3dCommandList, NULL);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }

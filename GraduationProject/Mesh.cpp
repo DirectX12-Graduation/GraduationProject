@@ -1010,3 +1010,21 @@ CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Gra
 CPlaneMeshIlluminated::~CPlaneMeshIlluminated()
 {
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CGeometryShadowMesh::CGeometryShadowMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGeometryShadowVertex* pGeometryShadowVertices, UINT nGeometryShadowVertices) : CMesh(pd3dDevice, pd3dCommandList)
+{
+	m_nVertices = nGeometryShadowVertices;
+	m_nStride = sizeof(CGeometryShadowVertex);
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+	m_pd3dVertexBuffer = CreateBufferResource(pd3dDevice, pd3dCommandList, pGeometryShadowVertices, m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+}
+
+CGeometryShadowMesh::~CGeometryShadowMesh()
+{
+}

@@ -183,6 +183,7 @@ public:
 	*pd3dCommandList);
 	// 상수 버퍼의 내용을 갱신한다.
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList *pd3dCommandList);
+	void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMMATRIX* pxmf4x4Shadow);
 	virtual void ReleaseShaderVariables();
 
 	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
