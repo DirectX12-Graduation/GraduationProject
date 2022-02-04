@@ -167,6 +167,7 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState) { }
 	virtual void PostRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState) { }
 	void CalculateBoundingBox(XMFLOAT3* pxmf3Points, UINT nStride);
+	UINT GetType() { return(m_nType); }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -325,7 +326,7 @@ public:
 	~CMeshLoadInfo();
 
 public:
-	TCHAR							m_pstrMeshName[256] = { 0 };
+	char							m_pstrMeshName[256] = { 0 };
 
 	UINT							m_nType = 0x00;
 

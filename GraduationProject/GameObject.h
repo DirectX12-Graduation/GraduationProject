@@ -111,6 +111,65 @@ public:
 	void ReleaseUploadBuffers();
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+#define MATERIAL_ALBEDO_MAP			0x01
+#define MATERIAL_SPECULAR_MAP		0x02
+#define MATERIAL_NORMAL_MAP			0x04
+#define MATERIAL_METALLIC_MAP		0x08
+#define MATERIAL_EMISSION_MAP		0x10
+#define MATERIAL_DETAIL_ALBEDO_MAP	0x20
+#define MATERIAL_DETAIL_NORMAL_MAP	0x40
+
+struct MATERIALLOADINFO
+{
+	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	float							m_fGlossiness = 0.0f;
+	float							m_fSmoothness = 0.0f;
+	float							m_fSpecularHighlight = 0.0f;
+	float							m_fMetallic = 0.0f;
+	float							m_fGlossyReflection = 0.0f;
+
+	UINT							m_nType = 0x00;
+
+	//char							m_pstrAlbedoMapName[64] = { '\0' };
+	//char							m_pstrSpecularMapName[64] = { '\0' };
+	//char							m_pstrMetallicMapName[64] = { '\0' };
+	//char							m_pstrNormalMapName[64] = { '\0' };
+	//char							m_pstrEmissionMapName[64] = { '\0' };
+	//char							m_pstrDetailAlbedoMapName[64] = { '\0' };
+	//char							m_pstrDetailNormalMapName[64] = { '\0' };
+};
+
+struct MATERIALSLOADINFO
+{
+	int								m_nMaterials = 0;
+	MATERIALLOADINFO* m_pMaterials = NULL;
+};
+
+class CMaterialColors
+{
+public:
+	CMaterialColors() { }
+	CMaterialColors(MATERIALLOADINFO* pMaterialInfo);
+	virtual ~CMaterialColors() { }
+
+private:
+	int								m_nReferences = 0;
+
+public:
+	void AddRef() { m_nReferences++; }
+	void Release() { if (--m_nReferences <= 0) delete this; }
+
+	XMFLOAT4						m_xmf4Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	XMFLOAT4						m_xmf4Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); //(r,g,b,a=power)
+	XMFLOAT4						m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+};
+
 class CMaterial
 {
 public:
@@ -152,16 +211,23 @@ public:
 
 public:
 	XMFLOAT4X4 m_xmf4x4World;
+	XMFLOAT4X4 m_xmf4x4Transform;
 
 	//게임 객체는 여러 개의 메쉬를 포함하는 경우 게임 객체가 가지는 메쉬들에 대한 포인터와 그 개수이다.
 	CMesh **m_ppMeshes = NULL;
 	int m_nMeshes = 0;
+
+	char m_pstrFrameName[64];
 
 	CMaterial* m_pMaterial = NULL;
 
 	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
 
 	bool							m_bActive = true;
+
+	CGameObject* m_pParent = NULL;
+	CGameObject* m_pChild = NULL;
+	CGameObject* m_pSibling = NULL;
 
 	BoundingBox						m_xmBoundingBox;
 
@@ -173,6 +239,7 @@ public:
 	virtual void SetMesh(int nIndex, CMesh* pMesh);
 	virtual void SetShader(CShader* pShader);
 	void SetMaterial(CMaterial* pMaterial);
+	void SetChild(CGameObject* pChild);
 
 	void SetCbvGPUDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE d3dCbvGPUDescriptorHandle) { m_d3dCbvGPUDescriptorHandle = d3dCbvGPUDescriptorHandle; }
 	void SetCbvGPUDescriptorHandlePtr(UINT64 nCbvGPUDescriptorHandlePtr) { m_d3dCbvGPUDescriptorHandle.ptr = nCbvGPUDescriptorHandlePtr; }
@@ -213,6 +280,20 @@ public:
 
 	void SetActive(bool bActive) { m_bActive = bActive; }
 	void CalculateBoundingBox();
+
+	CGameObject* GetParent() { return(m_pParent); }
+	CGameObject* FindFrame(char* pstrFrameName);
+
+	UINT GetMeshType() { return((m_ppMeshes) ? m_ppMeshes[0]->GetType() : 0); }
+
+public:
+	static MATERIALSLOADINFO* LoadMaterialsInfoFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
+	static CMeshLoadInfo* LoadMeshInfoFromFile(FILE* pInFile);
+
+	static CGameObject* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, FILE* pInFile);
+	static CGameObject* LoadGeometryFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName);
+
+	static void PrintFrameInfo(CGameObject* pGameObject, CGameObject* pParent);
 };
 
 class CRotatingObject : public CGameObject
@@ -277,3 +358,4 @@ public:
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 };
+
