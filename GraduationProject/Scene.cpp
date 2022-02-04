@@ -311,8 +311,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
 	m_ppShaders[0] = pObjectsShader;
 
-	m_pShadowShader = new CPlanarShadowShader(pObjectShader, m_pLights->m_pLights);
-	m_pShadowShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	m_pShadowShader = new CPlanarShadowShader(pObjectsShader, m_pLights->m_pLights);
+	m_pShadowShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3 , pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
 	m_pShadowShader->BuildObjects(pd3dDevice, pd3dCommandList, NULL);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -335,6 +335,13 @@ void CScene::ReleaseObjects()
 		}
 		delete[] m_ppShaders;
 	}
+	
+	if (m_pShadowShader)
+	{
+		m_pShadowShader->ReleaseShaderVariables();
+		m_pShadowShader->ReleaseObjects();
+		m_pShadowShader->Release();
+	}
 
 	ReleaseShaderVariables();
 
@@ -353,6 +360,7 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->ReleaseUploadBuffers();
 	if (m_pTerrain) m_pTerrain->ReleaseUploadBuffers();
 	if (m_pSkyBox) m_pSkyBox->ReleaseUploadBuffers();
+	if (m_pShadowShader) m_pShadowShader->ReleaseUploadBuffers();
 }
 
 void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -439,8 +447,11 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	if (m_pSkyBox) m_pSkyBox->Render(pd3dCommandList, pCamera);
 	if (m_pTerrain) m_pTerrain->Render(pd3dCommandList, pCamera);
 
+	if (m_pShadowShader) m_pShadowShader->Render(pd3dCommandList, pCamera);
+
 	for (int i = 0; i < m_nShaders; i++)
 	{
 		m_ppShaders[i]->Render(pd3dCommandList, pCamera);
 	}
+
 }

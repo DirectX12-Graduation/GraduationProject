@@ -488,9 +488,8 @@ void CGameObject::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandLis
 {
 	XMFLOAT4X4 xmf4x4PlanarShadow;
 	XMStoreFloat4x4(&xmf4x4PlanarShadow, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World) * (*pxmf4x4Shadow)));
-	pd3dCommandList->SetGraphicsRoot32BitConstants(0, 16, &xmf4x4PlanarShadow, 0);
-
-	if (m_pMaterial) pd3dCommandList->SetGraphicsRoot32BitConstants(0, 1, &m_pMaterial->m_nReflection, 16);
+	if (m_pcbMappedGameObject) XMStoreFloat4x4(&m_pcbMappedGameObject->m_xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&xmf4x4PlanarShadow)));
+	if (m_pcbMappedGameObject) m_pcbMappedGameObject->m_nMaterial = m_pMaterial->m_nReflection;
 }
 
 void CGameObject::ReleaseUploadBuffers()

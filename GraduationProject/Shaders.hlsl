@@ -474,4 +474,28 @@ float4 PSPostProcessing(VS_TEXTURED_OUTPUT input) : SV_Target
 	return(cColor);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+struct VS_PLANAR_SHADOW_OUTPUT
+{
+	float4 position : SV_POSITION;
+};
+
+VS_PLANAR_SHADOW_OUTPUT VSPlanarShadow(VS_LIGHTING_INPUT input)
+{
+	VS_PLANAR_SHADOW_OUTPUT output;
+
+	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
+
+	return(output);
+}
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSPlanarShadow(VS_PLANAR_SHADOW_OUTPUT input) : SV_TARGET
+{
+	float4 cColor = float4(0.25f, 0.25f, 0.25f, 1.0f);
+	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+	output.f4Scene = output.f4Color = cColor;
+
+	return(output);
+}
+

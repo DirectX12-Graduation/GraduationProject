@@ -763,15 +763,15 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
 
-	float fxPitch = 12.0f * 3.5f;
-	float fyPitch = 12.0f * 3.5f;
-	float fzPitch = 12.0f * 3.5f;
+	float fxPitch = 30.0f * 3.5f;
+	float fyPitch = 30.0f * 3.5f;
+	float fzPitch = 30.0f * 3.5f;
 
 	float fTerrainWidth = pTerrain->GetWidth();
 	float fTerrainLength = pTerrain->GetLength();
 
 	int xObjects = int(fTerrainWidth / fxPitch);
-	int yObjects = 2;
+	int yObjects = 1;
 	int zObjects = int(fTerrainLength / fzPitch);
 	m_nObjects = (xObjects * yObjects * zObjects);
 

@@ -6,6 +6,8 @@ class CScene;
 
 #define _WITH_SCENE_ROOT_SIGNATURE
 
+struct LIGHT;
+
 // 셰이더 소스 코드를 컴파일하고 그래픽스 상태 객체를 생성한다.
 class CShader
 {
