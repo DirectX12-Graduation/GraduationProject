@@ -77,6 +77,22 @@ using Microsoft::WRL::ComPtr;
 #define _WITH_VERTICES_AS_SCALING
 #endif
 
+#define _WITH_SHADOW_MAP_SHADOW
+
+#define MAX_DEPTH_TEXTURES		MAX_LIGHTS
+#define _DEPTH_BUFFER_WIDTH		(FRAME_BUFFER_WIDTH * 4)
+#define _DEPTH_BUFFER_HEIGHT	(FRAME_BUFFER_HEIGHT * 4)
+#define _WITH_DEPTH_TO_TEXTURE
+
+#define _WITH_RENDER_SHADOW
+
+#define _WITH_PCF_FILTERING
+#define _WITH_RASTERIZER_DEPTH_BIAS
+
+#define _WITH_RENDER_SHADOW_MAP
+
+#define _PLANE_WIDTH			1024
+#define _PLANE_HEIGHT			1024
 
 #define OBJECT_NUM 15
 
@@ -87,12 +103,14 @@ namespace Signature {
 		object,
 		meterial,
 		light,
+		ToLight,
 		gfw,
 		texture,
 		terrain,
 		skybox,
 		g_input,
-		g_output
+		g_output,
+		depth
 	};
 
 	enum Compute {
@@ -108,7 +126,8 @@ namespace Descriptor {
 		terrain,
 		skybox,
 		g_input,
-		g_output
+		g_output,
+		depth
 	};
 
 	enum Compute {

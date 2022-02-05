@@ -103,5 +103,9 @@ protected:
 	ID3D12Resource* m_pd3dcbMaterials = NULL;
 	MATERIAL* m_pcbMappedMaterials = NULL;
 
+public:
+	CDepthRenderShader* m_pDepthRenderShader = NULL;
+	CShadowMapShader* m_pShadowShader = NULL;
+
 };
 
