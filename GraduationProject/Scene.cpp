@@ -464,6 +464,11 @@ void CScene::AnimateObjects(float fTimeElapsed, CCamera* pCamrea)
 	if (m_pLights) {}
 }
 
+void CScene::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	m_pDepthRenderShader->PrepareShadowMap(pd3dCommandList);
+}
+
 void CScene::OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);

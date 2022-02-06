@@ -74,6 +74,7 @@ public:
 	CHeightMapTerrain* GetTerrain() { return(m_pTerrain); }
 
 	void OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 
 public:
 	CPlayer* m_pPlayer = NULL;
