@@ -473,12 +473,12 @@ void CScene::OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera
 	if (m_pd3dcbMaterials)
 	{
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialsGpuVirtualAddress = m_pd3dcbMaterials->GetGPUVirtualAddress();
-		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialsGpuVirtualAddress); //Materials
+		pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::meterial, d3dcbMaterialsGpuVirtualAddress); //Materials
 	}
 	if (m_pd3dcbLights)
 	{
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
-		pd3dCommandList->SetGraphicsRootConstantBufferView(4, d3dcbLightsGpuVirtualAddress); //Lights
+		pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::light, d3dcbLightsGpuVirtualAddress); //Lights
 	}
 }
 

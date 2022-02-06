@@ -1570,7 +1570,7 @@ void CDepthRenderShader::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCo
 	::memcpy(m_pcbMappedToLightSpaces, m_pToLightSpaces, sizeof(TOLIGHTSPACES));
 
 	D3D12_GPU_VIRTUAL_ADDRESS d3dcbToLightGpuVirtualAddress = m_pd3dcbToLightSpaces->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(6, d3dcbToLightGpuVirtualAddress); //ToLight
+	pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::ToLight, d3dcbToLightGpuVirtualAddress); //ToLight
 }
 
 void CDepthRenderShader::ReleaseShaderVariables()
@@ -1727,7 +1727,7 @@ void CShadowMapShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 	m_pDepthTexture->AddRef();
 
 	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, 0, m_pDepthTexture->GetTextures(),0);
-	CreateShaderResourceViews(pd3dDevice, m_pDepthTexture, 0, 5);
+	CreateShaderResourceViews(pd3dDevice, m_pDepthTexture, 0, Signature::Graphics::depth);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
