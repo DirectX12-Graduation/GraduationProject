@@ -763,18 +763,7 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
 
-	float fxPitch = 12.0f * 3.5f;
-	float fyPitch = 12.0f * 3.5f;
-	float fzPitch = 12.0f * 3.5f;
-
-	float fTerrainWidth = pTerrain->GetWidth();
-	float fTerrainLength = pTerrain->GetLength();
-
-	int xObjects = int(fTerrainWidth / fxPitch);
-	int yObjects = 2;
-	int zObjects = int(fTerrainLength / fzPitch);
-	m_nObjects = (xObjects * yObjects * zObjects);
-
+	m_nObjects = 1;
 	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
 	pTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/stones.dds", RESOURCE_TEXTURE2D, 0);
 
@@ -785,51 +774,86 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	CreateConstantBufferViews(pd3dDevice, m_nObjects, m_pd3dcbGameObjects, ncbElementBytes);
 	CreateShaderResourceViews(pd3dDevice, pTexture, 0, Signature::Graphics::texture);
 
-#ifdef _WITH_BATCH_MATERIAL
-	m_pMaterial = new CMaterial();
-	m_pMaterial->SetTexture(pTexture);
-#else
-	CMaterial* pCubeMaterial = new CMaterial();
-	pCubeMaterial->SetTexture(pTexture);
-#endif
-
-	CCubeMeshIlluminatedTextured* pCubeMesh = new CCubeMeshIlluminatedTextured(pd3dDevice, pd3dCommandList, 12.0f, 12.0f, 12.0f);
-
 	m_ppObjects = new CGameObject * [m_nObjects];
+	CGameObject* pApacheModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "../Assets/Model/Apache.bin");
 
-	XMFLOAT3 xmf3RotateAxis, xmf3SurfaceNormal;
-	CRotatingObject* pRotatingObject = NULL;
-	for (int i = 0, x = 0; x < xObjects; x++)
-	{
-		for (int z = 0; z < zObjects; z++)
-		{
-			for (int y = 0; y < yObjects; y++)
-			{
-				pRotatingObject = new CRotatingObject(1);
-				pRotatingObject->SetMesh(0, pCubeMesh);
-#ifndef _WITH_BATCH_MATERIAL
-				pRotatingObject->SetMaterial(pCubeMaterial);
-				pRotatingObject->m_pMaterial->SetReflection(i % MAX_MATERIALS);
-#endif
-				float xPosition = x * fxPitch;
-				float zPosition = z * fzPitch;
-				float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-				pRotatingObject->SetPosition(xPosition, fHeight + (y * 3.0f * fyPitch) + 6.0f, zPosition);
-				if (y == 0)
-				{
-					xmf3SurfaceNormal = pTerrain->GetNormal(xPosition, zPosition);
-					xmf3RotateAxis = Vector3::CrossProduct(XMFLOAT3(0.0f, 1.0f, 0.0f), xmf3SurfaceNormal);
-					if (Vector3::IsZero(xmf3RotateAxis)) xmf3RotateAxis = XMFLOAT3(0.0f, 1.0f, 0.0f);
-					float fAngle = acos(Vector3::DotProduct(XMFLOAT3(0.0f, 1.0f, 0.0f), xmf3SurfaceNormal));
-					pRotatingObject->Rotate(&xmf3RotateAxis, XMConvertToDegrees(fAngle));
-				}
-				pRotatingObject->SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
-				pRotatingObject->SetRotationSpeed(36.0f * (i % 10) + 36.0f);
-				pRotatingObject->SetCbvGPUDescriptorHandlePtr(m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvUavDescriptorIncrementSize * i));
-				m_ppObjects[i++] = pRotatingObject;
-			}
-		}
-	}
+	CApacheObject* pApacheObject = new CApacheObject(0);
+	pApacheObject->SetChild(pApacheModel);
+	pApacheObject->OnInitialize();
+	pApacheObject->SetPosition(XMFLOAT3(pTerrain->GetWidth() * 0.5f, 1000.0f, pTerrain->GetLength() * 0.5f));
+	pApacheObject->Rotate(0.0f, 90.0f, 0.0f);
+	pApacheObject->SetActive(true);
+	pApacheObject->SetCbvGPUDescriptorHandlePtr(m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvUavDescriptorIncrementSize * 0));
+
+	m_ppObjects[0] = pApacheObject;
+
+//	float fxPitch = 12.0f * 3.5f;
+//	float fyPitch = 12.0f * 3.5f;
+//	float fzPitch = 12.0f * 3.5f;
+//
+//	float fTerrainWidth = pTerrain->GetWidth();
+//	float fTerrainLength = pTerrain->GetLength();
+//
+//	int xObjects = int(fTerrainWidth / fxPitch);
+//	int yObjects = 2;
+//	int zObjects = int(fTerrainLength / fzPitch);
+//	m_nObjects = (xObjects * yObjects * zObjects);
+//
+//	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
+//	pTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/stones.dds", RESOURCE_TEXTURE2D, 0);
+//
+//	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+//
+//	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, m_nObjects, 1, 0);
+//	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+//	CreateConstantBufferViews(pd3dDevice, m_nObjects, m_pd3dcbGameObjects, ncbElementBytes);
+//	CreateShaderResourceViews(pd3dDevice, pTexture, 0, Signature::Graphics::texture);
+//
+//#ifdef _WITH_BATCH_MATERIAL
+//	m_pMaterial = new CMaterial();
+//	m_pMaterial->SetTexture(pTexture);
+//#else
+//	CMaterial* pCubeMaterial = new CMaterial();
+//	pCubeMaterial->SetTexture(pTexture);
+//#endif
+//
+//	CCubeMeshIlluminatedTextured* pCubeMesh = new CCubeMeshIlluminatedTextured(pd3dDevice, pd3dCommandList, 12.0f, 12.0f, 12.0f);
+//
+//	m_ppObjects = new CGameObject * [m_nObjects];
+//
+//	XMFLOAT3 xmf3RotateAxis, xmf3SurfaceNormal;
+//	CRotatingObject* pRotatingObject = NULL;
+//	for (int i = 0, x = 0; x < xObjects; x++)
+//	{
+//		for (int z = 0; z < zObjects; z++)
+//		{
+//			for (int y = 0; y < yObjects; y++)
+//			{
+//				pRotatingObject = new CRotatingObject(1);
+//				pRotatingObject->SetMesh(0, pCubeMesh);
+//#ifndef _WITH_BATCH_MATERIAL
+//				pRotatingObject->SetMaterial(pCubeMaterial);
+//				pRotatingObject->m_pMaterial->SetReflection(i % MAX_MATERIALS);
+//#endif
+//				float xPosition = x * fxPitch;
+//				float zPosition = z * fzPitch;
+//				float fHeight = pTerrain->GetHeight(xPosition, zPosition);
+//				pRotatingObject->SetPosition(xPosition, fHeight + (y * 3.0f * fyPitch) + 6.0f, zPosition);
+//				if (y == 0)
+//				{
+//					xmf3SurfaceNormal = pTerrain->GetNormal(xPosition, zPosition);
+//					xmf3RotateAxis = Vector3::CrossProduct(XMFLOAT3(0.0f, 1.0f, 0.0f), xmf3SurfaceNormal);
+//					if (Vector3::IsZero(xmf3RotateAxis)) xmf3RotateAxis = XMFLOAT3(0.0f, 1.0f, 0.0f);
+//					float fAngle = acos(Vector3::DotProduct(XMFLOAT3(0.0f, 1.0f, 0.0f), xmf3SurfaceNormal));
+//					pRotatingObject->Rotate(&xmf3RotateAxis, XMConvertToDegrees(fAngle));
+//				}
+//				pRotatingObject->SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
+//				pRotatingObject->SetRotationSpeed(36.0f * (i % 10) + 36.0f);
+//				pRotatingObject->SetCbvGPUDescriptorHandlePtr(m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvUavDescriptorIncrementSize * i));
+//				m_ppObjects[i++] = pRotatingObject;
+//			}
+//		}
+//	}
 }
 
 void CObjectsShader::ReleaseObjects()
@@ -863,8 +887,8 @@ void CObjectsShader::ReleaseUploadBuffers()
 
 void CObjectsShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	CIlluminatedShader::Render(pd3dCommandList, pCamera);
-	for (int j = 1; j < m_nObjects; j++)
+	//CIlluminatedShader::Render(pd3dCommandList, pCamera);
+	for (int j = 0; j < m_nObjects; j++)
 	{
 		if (m_ppObjects[j])
 		{

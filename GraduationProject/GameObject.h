@@ -253,6 +253,7 @@ public:
 	virtual void ReleaseShaderVariables();
 
 	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void OnPrepareRender() {};
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	
@@ -359,3 +360,30 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 };
 
+
+// 확인
+class CHellicopterObject : public CGameObject
+{
+public:
+	CHellicopterObject(int nMeshes);
+	virtual ~CHellicopterObject();
+
+protected:
+	CGameObject* m_pMainRotorFrame = NULL;
+	CGameObject* m_pTailRotorFrame = NULL;
+
+public:
+	virtual void OnInitialize();
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
+};
+
+class CApacheObject : public CHellicopterObject
+{
+public:
+	CApacheObject(int nMeshes);
+	virtual ~CApacheObject();
+
+public:
+	virtual void OnInitialize();
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
+};

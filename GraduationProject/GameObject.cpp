@@ -526,6 +526,12 @@ void CGameObject::Animate(float fTimeElapsed, CCamera* pCamrea)
 {
 }
 
+void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (m_pSibling) m_pSibling->Animate(fTimeElapsed, pxmf4x4Parent);
+	if (m_pChild) m_pChild->Animate(fTimeElapsed, &m_xmf4x4World);
+}
+
 void CGameObject::Rotate(XMFLOAT3* pxmf3Axis, float fAngle)
 {
 	XMMATRIX mtxRotate = XMMatrixRotationAxis(XMLoadFloat3(pxmf3Axis),
@@ -557,13 +563,14 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 	pd3dCommandList->SetGraphicsRootDescriptorTable(Signature::Graphics::object, m_d3dCbvGPUDescriptorHandle);
 
 	//게임 객체가 포함하는 모든 메쉬를 렌더링한다.
-	if (m_ppMeshes)
+	if (m_nMeshes > 0)
 	{
 		for (int i = 0; i < m_nMeshes; i++)
 		{
 			if (m_ppMeshes[i]) m_ppMeshes[i]->Render(pd3dCommandList);
 		}
 	}
+	
 
 	if (m_pSibling) m_pSibling->Render(pd3dCommandList, pCamera);
 	if (m_pChild) m_pChild->Render(pd3dCommandList, pCamera);
@@ -788,7 +795,7 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 		::ReadStringFromFile(pInFile, pstrToken);
 		if (!strcmp(pstrToken, "<Frame>:"))
 		{
-			pGameObject = new CGameObject();
+			pGameObject = new CGameObject(0);
 
 			nFrame = ::ReadIntegerFromFile(pInFile);
 			::ReadStringFromFile(pInFile, pGameObject->m_pstrFrameName);
@@ -816,32 +823,37 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 				{
 					pMesh = new CMeshIlluminatedFromFile(pd3dDevice, pd3dCommandList, pMeshInfo);
 				}
-				if (pMesh) pGameObject->SetMesh(0, pMesh);
+				if (pMesh) {
+					pGameObject->m_nMeshes = 1;
+					pGameObject->m_ppMeshes = new CMesh * [pGameObject->m_nMeshes];
+					for (int i = 0; i < pGameObject->m_nMeshes; i++) pGameObject->m_ppMeshes[i] = NULL;
+					pGameObject->SetMesh(0, pMesh);
+				}
 				delete pMeshInfo;
 			}
 		}
 		else if (!strcmp(pstrToken, "<Materials>:"))
 		{
 			MATERIALSLOADINFO* pMaterialsInfo = pGameObject->LoadMaterialsInfoFromFile(pd3dDevice, pd3dCommandList, pInFile);
-			if (pMaterialsInfo && (pMaterialsInfo->m_nMaterials > 0))
-			{
-				pGameObject->m_nMaterials = pMaterialsInfo->m_nMaterials;
-				pGameObject->m_ppMaterials = new CMaterial * [pMaterialsInfo->m_nMaterials];
+			//if (pMaterialsInfo && (pMaterialsInfo->m_nMaterials > 0))
+			//{
+			//	pGameObject->m_nMaterials = pMaterialsInfo->m_nMaterials;
+			//	pGameObject->m_ppMaterials = new CMaterial * [pMaterialsInfo->m_nMaterials];
 
-				for (int i = 0; i < pMaterialsInfo->m_nMaterials; i++)
-				{
-					pGameObject->m_ppMaterials[i] = NULL;
+			//	for (int i = 0; i < pMaterialsInfo->m_nMaterials; i++)
+			//	{
+			//		pGameObject->m_ppMaterials[i] = NULL;
 
-					CMaterial* pMaterial = new CMaterial();
+			//		CMaterial* pMaterial = new CMaterial();
 
-					CMaterialColors* pMaterialColors = new CMaterialColors(&pMaterialsInfo->m_pMaterials[i]);
-					pMaterial->SetMaterialColors(pMaterialColors);
+			//		CMaterialColors* pMaterialColors = new CMaterialColors(&pMaterialsInfo->m_pMaterials[i]);
+			//		pMaterial->SetMaterialColors(pMaterialColors);
 
-					if (pGameObject->GetMeshType() & VERTEXT_NORMAL) pMaterial->SetIlluminatedShader();
+			//		if (pGameObject->GetMeshType() & VERTEXT_NORMAL) pMaterial->SetIlluminatedShader();
 
-					pGameObject->SetMaterial(i, pMaterial);
-				}
-			}
+			//		pGameObject->SetMaterial(i, pMaterial);
+			//	}
+			//}
 		}
 		else if (!strcmp(pstrToken, "<Children>:"))
 		{
@@ -865,16 +877,18 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 			break;
 		}
 	}
-	if (pGameObject->m_ppMeshes) {
-		TCHAR pstrDebug[256] = { 0 };
-		_stprintf_s(pstrDebug, 256, _T("Mesh!!\n"));
-		OutputDebugString(pstrDebug);
-	}
-	else
-	{
-		TCHAR pstrDebug[256] = { 0 };
-		_stprintf_s(pstrDebug, 256, _T("NO Mesh!!\n"));
-		OutputDebugString(pstrDebug);
+	if (pGameObject) {
+		if (pGameObject->m_ppMeshes) {
+			TCHAR pstrDebug[256] = { 0 };
+			_stprintf_s(pstrDebug, 256, _T("Mesh!!\n"));
+			OutputDebugString(pstrDebug);
+		}
+		else
+		{
+			TCHAR pstrDebug[256] = { 0 };
+			_stprintf_s(pstrDebug, 256, _T("NO Mesh!!\n"));
+			OutputDebugString(pstrDebug);
+		}
 	}
 	return(pGameObject);
 }
@@ -1113,4 +1127,67 @@ void CSkyBox::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 			if (m_ppMeshes[i]) m_ppMeshes[i]->Render(pd3dCommandList);
 		}
 	}
+}
+
+// 확ㅇ니
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CHellicopterObject::CHellicopterObject(int nMeshes) : CGameObject(nMeshes)
+{
+}
+
+CHellicopterObject::~CHellicopterObject()
+{
+}
+
+void CHellicopterObject::OnInitialize()
+{
+}
+
+void CHellicopterObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (m_pMainRotorFrame)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
+		m_pMainRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pMainRotorFrame->m_xmf4x4Transform);
+	}
+	if (m_pTailRotorFrame)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0f) * fTimeElapsed);
+		m_pTailRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pTailRotorFrame->m_xmf4x4Transform);
+	}
+
+	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CApacheObject::CApacheObject(int nMeshes) : CHellicopterObject(nMeshes)
+{
+}
+
+CApacheObject::~CApacheObject()
+{
+}
+
+void CApacheObject::OnInitialize()
+{
+	m_pMainRotorFrame = FindFrame("rotor");
+	m_pTailRotorFrame = FindFrame("black_m_7");
+}
+
+void CApacheObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (m_pMainRotorFrame)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
+		m_pMainRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pMainRotorFrame->m_xmf4x4Transform);
+	}
+	if (m_pTailRotorFrame)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(360.0f * 4.0f) * fTimeElapsed);
+		m_pTailRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pTailRotorFrame->m_xmf4x4Transform);
+	}
+
+	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
