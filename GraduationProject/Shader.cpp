@@ -757,6 +757,21 @@ void CObjectsShader::ReleaseShaderVariables()
 	CIlluminatedShader::ReleaseShaderVariables();
 }
 
+void CountChildren(CGameObject* pObject, int& i)
+{
+	i++;
+	if (pObject->m_pSibling) CountChildren(pObject->m_pSibling, i);
+	if (pObject->m_pChild) CountChildren(pObject->m_pChild, i);
+}
+
+void SetHandlePtr_HierachyModel(CGameObject* pObject, D3D12_GPU_DESCRIPTOR_HANDLE d3dCbvGPUDescriptorStartHandle, int &i)
+{
+	pObject->SetCbvGPUDescriptorHandlePtr(d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvUavDescriptorIncrementSize * i));
+	i++;
+	if (pObject->m_pSibling) SetHandlePtr_HierachyModel(pObject->m_pSibling, d3dCbvGPUDescriptorStartHandle, i);
+	if (pObject->m_pChild) SetHandlePtr_HierachyModel(pObject->m_pChild, d3dCbvGPUDescriptorStartHandle, i);
+}
+
 void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	* pd3dCommandList, void* pContext)
 {
@@ -769,11 +784,6 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
 
-	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, m_nObjects, 1, 0);
-	CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	CreateConstantBufferViews(pd3dDevice, m_nObjects, m_pd3dcbGameObjects, ncbElementBytes);
-	CreateShaderResourceViews(pd3dDevice, pTexture, 0, Signature::Graphics::texture);
-
 	m_ppObjects = new CGameObject * [m_nObjects];
 	CGameObject* pApacheModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "../Assets/Model/Apache.bin");
 
@@ -783,7 +793,19 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	pApacheObject->SetPosition(XMFLOAT3(pTerrain->GetWidth() * 0.5f, 1000.0f, pTerrain->GetLength() * 0.5f));
 	pApacheObject->Rotate(0.0f, 90.0f, 0.0f);
 	pApacheObject->SetActive(true);
-	pApacheObject->SetCbvGPUDescriptorHandlePtr(m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvUavDescriptorIncrementSize * 0));
+
+	int nObjects = 0;
+	CountChildren(pApacheObject, nObjects);
+
+	m_nObjects = nObjects;
+
+	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, m_nObjects, 1, 0);
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	CreateConstantBufferViews(pd3dDevice, m_nObjects, m_pd3dcbGameObjects, ncbElementBytes);
+	CreateShaderResourceViews(pd3dDevice, pTexture, 0, Signature::Graphics::texture);
+
+	int i = 0;
+	SetHandlePtr_HierachyModel(pApacheObject, m_d3dCbvGPUDescriptorStartHandle, i);
 
 	m_ppObjects[0] = pApacheObject;
 
