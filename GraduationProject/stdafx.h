@@ -103,14 +103,14 @@ namespace Signature {
 		object,
 		meterial,
 		light,
-		ToLight,
 		gfw,
 		texture,
 		terrain,
 		skybox,
 		g_input,
 		g_output,
-		depth
+		depth,
+		ToLight
 	};
 
 	enum Compute {

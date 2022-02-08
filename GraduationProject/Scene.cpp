@@ -80,7 +80,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].NumDescriptors = MAX_DEPTH_TEXTURES;
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].BaseShaderRegister = 12; //t12: depthbuffer
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].RegisterSpace = 0;
-	pd3dDescriptorRanges[Descriptor::Graphics::depth].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	pd3dDescriptorRanges[Descriptor::Graphics::depth].OffsetInDescriptorsFromTableStart = 0;
 
 	D3D12_ROOT_PARAMETER pd3dRootParameters[13];
 
