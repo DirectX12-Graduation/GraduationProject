@@ -480,8 +480,11 @@ void CGameObject::ReleaseShaderVariables()
 
 void CGameObject::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	if(m_pcbMappedGameObject) XMStoreFloat4x4(&m_pcbMappedGameObject->m_xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
-	if(m_pcbMappedGameObject) m_pcbMappedGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+	XMFLOAT4X4 xmf4x4World;
+	XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
+	pd3dCommandList->SetGraphicsRoot32BitConstants(Signature::Graphics::object, 16, &xmf4x4World, 0);
+
+	if (m_pMaterial) pd3dCommandList->SetGraphicsRoot32BitConstants(Signature::Graphics::object, 1, &m_pMaterial->m_nReflection, 16);
 }
 
 void CGameObject::ReleaseUploadBuffers()
@@ -530,9 +533,6 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 		}
 	}
 
-	pd3dCommandList->SetGraphicsRootDescriptorTable(Signature::Graphics::object, m_d3dCbvGPUDescriptorHandle);
-
-	//게임 객체가 포함하는 모든 메쉬를 렌더링한다.
 	if (m_ppMeshes)
 	{
 		for (int i = 0; i < m_nMeshes; i++)
@@ -725,8 +725,6 @@ void CSkyBox::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 			UpdateShaderVariables(pd3dCommandList);
 		}
 	}
-
-	pd3dCommandList->SetGraphicsRootDescriptorTable(Signature::Graphics::object, m_d3dCbvGPUDescriptorHandle);
 
 	if (m_ppMeshes)
 	{
