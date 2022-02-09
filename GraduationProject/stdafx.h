@@ -103,6 +103,7 @@ namespace Signature {
 		object,
 		meterial,
 		light,
+		ToLight,
 		gfw,
 		texture,
 		terrain,
@@ -110,7 +111,6 @@ namespace Signature {
 		g_input,
 		g_output,
 		depth,
-		ToLight
 	};
 
 	enum Compute {
@@ -121,7 +121,6 @@ namespace Signature {
 
 namespace Descriptor {
 	enum Graphics {
-		object,
 		texture,
 		terrain,
 		skybox,

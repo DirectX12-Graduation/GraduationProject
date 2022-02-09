@@ -38,13 +38,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 
 	ID3D12RootSignature* pd3dGraphicsRootSignature = NULL;
 
-	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[7];
-
-	pd3dDescriptorRanges[Descriptor::Graphics::object].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].NumDescriptors = 1;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].BaseShaderRegister = 2;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].RegisterSpace = 0;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[6];
 
 	pd3dDescriptorRanges[Descriptor::Graphics::texture].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	pd3dDescriptorRanges[Descriptor::Graphics::texture].NumDescriptors = 1;
@@ -94,9 +88,10 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[Signature::Graphics::camera].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[Signature::Graphics::camera].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	pd3dRootParameters[Signature::Graphics::object].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[Signature::Graphics::object].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[Signature::Graphics::object].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::object];
+	pd3dRootParameters[Signature::Graphics::object].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	pd3dRootParameters[Signature::Graphics::object].Constants.Num32BitValues = 16 + 1; //Game Object
+	pd3dRootParameters[Signature::Graphics::object].Constants.ShaderRegister = 2;
+	pd3dRootParameters[Signature::Graphics::object].Constants.RegisterSpace = 0;
 	pd3dRootParameters[Signature::Graphics::object].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	pd3dRootParameters[Signature::Graphics::meterial].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
