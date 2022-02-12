@@ -805,7 +805,8 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	CreateShaderResourceViews(pd3dDevice, pTexture, 0, Signature::Graphics::texture);
 
 	int i = 0;
-	SetHandlePtr_HierachyModel(pApacheObject, m_d3dCbvGPUDescriptorStartHandle, i);
+	m_nObjects = 1;
+	//SetHandlePtr_HierachyModel(pApacheObject, m_d3dCbvGPUDescriptorStartHandle, i);
 
 	m_ppObjects[0] = pApacheObject;
 
