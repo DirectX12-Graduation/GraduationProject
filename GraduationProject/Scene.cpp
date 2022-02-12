@@ -40,12 +40,6 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 
 	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[6];
 
-	pd3dDescriptorRanges[Descriptor::Graphics::object].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].NumDescriptors = 1;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].BaseShaderRegister = 2;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].RegisterSpace = 0;
-	pd3dDescriptorRanges[Descriptor::Graphics::object].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
 	pd3dDescriptorRanges[Descriptor::Graphics::texture].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	pd3dDescriptorRanges[Descriptor::Graphics::texture].NumDescriptors = 1;
 	pd3dDescriptorRanges[Descriptor::Graphics::texture].BaseShaderRegister = 0;
@@ -88,9 +82,10 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[Signature::Graphics::camera].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[Signature::Graphics::camera].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	pd3dRootParameters[Signature::Graphics::object].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[Signature::Graphics::object].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[Signature::Graphics::object].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::object];
+	pd3dRootParameters[Signature::Graphics::object].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	pd3dRootParameters[Signature::Graphics::object].Constants.Num32BitValues = 16 + 1; //Game Object
+	pd3dRootParameters[Signature::Graphics::object].Constants.ShaderRegister = 2;
+	pd3dRootParameters[Signature::Graphics::object].Constants.RegisterSpace = 0;
 	pd3dRootParameters[Signature::Graphics::object].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	pd3dRootParameters[Signature::Graphics::meterial].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -417,12 +412,12 @@ void CScene::OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera
 	if (m_pd3dcbMaterials)
 	{
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialsGpuVirtualAddress = m_pd3dcbMaterials->GetGPUVirtualAddress();
-		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialsGpuVirtualAddress); //Materials
+		pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::meterial, d3dcbMaterialsGpuVirtualAddress); //Materials
 	}
 	if (m_pd3dcbLights)
 	{
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
-		pd3dCommandList->SetGraphicsRootConstantBufferView(4, d3dcbLightsGpuVirtualAddress); //Lights
+		pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::light, d3dcbLightsGpuVirtualAddress); //Lights
 	}
 }
 

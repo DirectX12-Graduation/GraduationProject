@@ -1229,7 +1229,7 @@ void CBlurringShader::CreateResourcesAndViews(ID3D12Device* pd3dDevice, UINT nRe
 
 	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, 0, nShaderResources,1);
 #ifdef _WITH_SCENE_ROOT_SIGNATURE
-	CreateShaderResourceViews(pd3dDevice, m_pTexture, 0,9);
+	CreateShaderResourceViews(pd3dDevice, m_pTexture, 0,Signature::Graphics::g_input);
 #else
 	CreateShaderResourceViews(pd3dDevice, m_pTexture, 0, 0);
 #endif
