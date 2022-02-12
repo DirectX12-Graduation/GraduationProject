@@ -1743,12 +1743,14 @@ void CShadowMapShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamer
 
 	UpdateShaderVariables(pd3dCommandList);
 
-	for (int i = 0; i < m_pObjectsShader->m_nObjects; i++)
-	{
-		if (m_pObjectsShader->m_ppObjects[i])
-		{
-			m_pObjectsShader->m_ppObjects[i]->UpdateShaderVariables(pd3dCommandList);
-			m_pObjectsShader->m_ppObjects[i]->Render(pd3dCommandList, pCamera);
-		}
-	}
+	//for (int i = 0; i < m_pObjectsShader->m_nObjects; i++)
+	//{
+	//	if (m_pObjectsShader->m_ppObjects[i])
+	//	{
+	//		m_pObjectsShader->m_ppObjects[i]->UpdateShaderVariables(pd3dCommandList);
+	//		m_pObjectsShader->m_ppObjects[i]->Render(pd3dCommandList, pCamera);
+	//	}
+	//}
+
+	m_pObjectsShader->Render(pd3dCommandList, pCamera);
 }
