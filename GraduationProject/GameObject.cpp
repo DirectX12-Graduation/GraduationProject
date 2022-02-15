@@ -523,6 +523,9 @@ void CGameObject::ReleaseUploadBuffers()
 	}
 
 	if (m_pMaterial) m_pMaterial->ReleaseUploadBuffers();
+
+	if (m_pSibling) m_pSibling->ReleaseUploadBuffers();
+	if (m_pChild) m_pChild->ReleaseUploadBuffers();
 }
 
 void CGameObject::Animate(float fTimeElapsed, CCamera* pCamrea)

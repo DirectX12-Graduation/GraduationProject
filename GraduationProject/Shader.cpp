@@ -742,7 +742,7 @@ void CObjectsShader::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dComman
 	{
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)((UINT8*)m_pcbMappedGameObjects + (j * ncbElementBytes));
 		XMStoreFloat4x4(&pbMappedcbGameObject->m_xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_ppObjects[j]->m_xmf4x4World)));
-		//pbMappedcbGameObject->m_nMaterial = m_ppObjects[j]->m_pMaterial->m_nReflection;
+		pbMappedcbGameObject->m_nMaterial = m_ppObjects[j]->m_pMaterial->m_nReflection;
 	}
 }
 
@@ -790,7 +790,9 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	CApacheObject* pApacheObject = new CApacheObject(0);
 	pApacheObject->SetChild(pApacheModel);
 	pApacheObject->OnInitialize();
-	pApacheObject->SetPosition(XMFLOAT3(pTerrain->GetWidth() * 0.5f, 1000.0f, pTerrain->GetLength() * 0.5f));
+	int x = pTerrain->GetWidth() * 0.5f;
+	int z = pTerrain->GetLength() * 0.5f;
+	pApacheObject->SetPosition(XMFLOAT3(x,pTerrain->GetHeight(x,z), z));
 	pApacheObject->Rotate(0.0f, 90.0f, 0.0f);
 	pApacheObject->SetActive(true);
 
@@ -836,9 +838,13 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 //	m_pMaterial = new CMaterial();
 //	m_pMaterial->SetTexture(pTexture);
 //#else
-//	CMaterial* pCubeMaterial = new CMaterial();
+	CMaterial* pCubeMaterial = new CMaterial();
 //	pCubeMaterial->SetTexture(pTexture);
 //#endif
+
+	pCubeMaterial->SetReflection(0);
+	m_ppObjects[0]->SetMaterial(pCubeMaterial);
+
 //
 //	CCubeMeshIlluminatedTextured* pCubeMesh = new CCubeMeshIlluminatedTextured(pd3dDevice, pd3dCommandList, 12.0f, 12.0f, 12.0f);
 //
