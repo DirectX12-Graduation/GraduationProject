@@ -385,7 +385,7 @@ protected:
 
 public:
 	CTexture* GetDepthTexture() { return(m_pDepthTexture); }
-	ID3D12Resource* GetDepthTextureResource(UINT nIndex) { return(m_pDepthTexture->GetResource(nIndex)); }
+	ID3D12Resource* GetDepthTextureResource(UINT nIndex) { return(m_pDepthTexture->GetTexture(nIndex)); }
 
 public:
 	CObjectsShader* m_pObjectsShader = NULL;

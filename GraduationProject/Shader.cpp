@@ -1479,11 +1479,6 @@ void CSkinnedAnimationObjectsWireFrameShader::Render(ID3D12GraphicsCommandList* 
 	}
 }
 
-void CHorzComputeShader::Dispatch(ID3D12GraphicsCommandList* pd3dCommandList, UINT cxThreadGroups, UINT cyThreadGroups, UINT czThreadGroups)
-{
-	CComputeShader::Dispatch(pd3dCommandList, cxThreadGroups, cyThreadGroups, czThreadGroups);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CDepthRenderShader::CDepthRenderShader(CObjectsShader* pObjectsShader, LIGHT* pLights)
@@ -1574,7 +1569,7 @@ void CDepthRenderShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCo
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	for (UINT i = 0; i < MAX_DEPTH_TEXTURES; i++)
 	{
-		ID3D12Resource* pd3dTextureResource = m_pDepthTexture->GetResource(i);
+		ID3D12Resource* pd3dTextureResource = m_pDepthTexture->GetTexture(i);
 		pd3dDevice->CreateRenderTargetView(pd3dTextureResource, &d3dRenderTargetViewDesc, d3dRtvCPUDescriptorHandle);
 		m_pd3dRtvCPUDescriptorHandles[i] = d3dRtvCPUDescriptorHandle;
 		d3dRtvCPUDescriptorHandle.ptr += ::gnRtvDescriptorIncrementSize;
@@ -1820,10 +1815,8 @@ void CShadowMapShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 	m_pDepthTexture = (CTexture*)pContext;
 	m_pDepthTexture->AddRef();
 
-	CreateCbvSrvUavDescriptorHeaps(pd3dDevice, 0, m_pDepthTexture->GetTextures(),0);
-	CreateShaderResourceViews(pd3dDevice, m_pDepthTexture, 0, Signature::Graphics::depth);
-
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	CScene::CreateShaderResourceViews(pd3dDevice, m_pDepthTexture, Signature::Graphics::depth, true);
 }
 
 void CShadowMapShader::ReleaseObjects()

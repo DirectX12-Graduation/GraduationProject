@@ -104,14 +104,13 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dDescriptorRanges[Descriptor::Graphics::model_diffuse].RegisterSpace = 0;
 	pd3dDescriptorRanges[Descriptor::Graphics::model_diffuse].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	D3D12_ROOT_PARAMETER pd3dRootParameters[16];
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].NumDescriptors = MAX_DEPTH_TEXTURES;
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].BaseShaderRegister = 12; //t12: depthbuffer
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].RegisterSpace = 0;
 	pd3dDescriptorRanges[Descriptor::Graphics::depth].OffsetInDescriptorsFromTableStart = 0;
 
-	D3D12_ROOT_PARAMETER pd3dRootParameters[13];
+	D3D12_ROOT_PARAMETER pd3dRootParameters[16];
 
 	pd3dRootParameters[Signature::Graphics::player].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	pd3dRootParameters[Signature::Graphics::player].Descriptor.ShaderRegister = 0; //Player
@@ -194,7 +193,6 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[Signature::Graphics::depth].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::depth]; //Depth Buffer
 	pd3dRootParameters[Signature::Graphics::depth].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[3];
 	pd3dRootParameters[Signature::Graphics::animation_diffuse].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[Signature::Graphics::animation_diffuse].DescriptorTable.NumDescriptorRanges = 1;
 	pd3dRootParameters[Signature::Graphics::animation_diffuse].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::animation_diffuse];
@@ -205,7 +203,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[Signature::Graphics::model_diffuse].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::model_diffuse];
 	pd3dRootParameters[Signature::Graphics::model_diffuse].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[2];
+	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[3];
 
 	pd3dSamplerDescs[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 	pd3dSamplerDescs[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
