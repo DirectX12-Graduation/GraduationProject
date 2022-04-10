@@ -159,18 +159,51 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARG
 
 	return(output);
 }
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSLighting_Transparent(VS_LIGHTING_OUTPUT input) : SV_TARGET
+{
+	float4 cColor = gtxtTexture.Sample(gSamplerState, input.uv);
+	cColor.a = 0.5f;
+	input.normalW = normalize(input.normalW);
+	float4 uvs[MAX_LIGHTS];
+	float4 cIllumination = Lighting(input.positionW, input.normalW, false, uvs);
+
+	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+	output.f4Scene = output.f4Color = cColor*cIllumination;
+	output.fDepth = 1.0f - input.position.z;
+
+	return(output);
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-Texture2D gtxtSkyBox : register(t7);
-
-PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSSkyBox(VS_TEXTURED_OUTPUT input) : SV_TARGET
+struct VS_SKYBOX_CUBEMAP_INPUT
 {
-	float4 cColor = gtxtSkyBox.Sample(gClampSamplerState, input.uv);
+	float3 position : POSITION;
+};
 
+struct VS_SKYBOX_CUBEMAP_OUTPUT
+{
+	float3	positionL : POSITION;
+	float4	position : SV_POSITION;
+};
+
+TextureCube gtxtSkyCubeTexture : register(t3);
+
+VS_SKYBOX_CUBEMAP_OUTPUT VSSkyBox(VS_SKYBOX_CUBEMAP_INPUT input)
+{
+	VS_SKYBOX_CUBEMAP_OUTPUT output;
+
+	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
+	output.positionL = input.position;
+
+	return(output);
+}
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSSkyBox(VS_SKYBOX_CUBEMAP_OUTPUT input) : SV_TARGET
+{
+	float4 cColor = gtxtSkyCubeTexture.Sample(gClampSamplerState, input.positionL);
 
 	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
 	output.f4Scene = output.f4Color = cColor;
-	
 	output.fDepth = 1.0f - input.position.z;
 
 	return(output);
@@ -178,8 +211,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSSkyBox(VS_TEXTURED_OUTPUT input) : SV_TARGET
 
 //--------------------------------------------------------------------------------------
 Texture2D<float4> gtxtTerrainBaseTexture : register(t1);
-Texture2D<float4> gtxtTerrainDetailTextures[3] : register(t2); //t2, t3, t4
-Texture2D<float4> gtxtTerrainAlphaTexture[2] : register(t5); // t5, t6
+Texture2D<float4> gtxtTerrainDetailTexture : register(t2);
 
 struct VS_TERRAIN_INPUT
 {
@@ -189,21 +221,19 @@ struct VS_TERRAIN_INPUT
 	float2 uv1 : TEXCOORD1;
 };
 
-struct VS_TERRAIN_TESSELLATION_OUTPUT
+struct VS_TERRAIN_OUTPUT
 {
-	float3 position : POSITION;
-	float3 positionW : POSITION1;
+	float4 position : SV_POSITION;
 	float4 color : COLOR;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1 : TEXCOORD1;
 };
 
-VS_TERRAIN_TESSELLATION_OUTPUT VSTerrainTessellation(VS_TERRAIN_INPUT input)
+VS_TERRAIN_OUTPUT VSTerrain(VS_TERRAIN_INPUT input)
 {
-	VS_TERRAIN_TESSELLATION_OUTPUT output;
+	VS_TERRAIN_OUTPUT output;
 
-	output.position = input.position;
-	output.positionW = mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
+	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
 	output.color = input.color;
 	output.uv0 = input.uv0;
 	output.uv1 = input.uv1;
@@ -211,161 +241,14 @@ VS_TERRAIN_TESSELLATION_OUTPUT VSTerrainTessellation(VS_TERRAIN_INPUT input)
 	return(output);
 }
 
-struct HS_TERRAIN_TESSELLATION_CONSTANT
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSTerrain(VS_TERRAIN_OUTPUT input) : SV_TARGET
 {
-	float fTessEdges[4] : SV_TessFactor;
-	float fTessInsides[2] : SV_InsideTessFactor;
-};
-
-struct HS_TERRAIN_TESSELLATION_OUTPUT
-{
-	float3 position : POSITION;
-	float4 color : COLOR;
-	float2 uv0 : TEXCOORD0;
-	float2 uv1 : TEXCOORD1;
-};
-
-struct DS_TERRAIN_TESSELLATION_OUTPUT
-{
-	float4 position : SV_POSITION;
-	float4 color : COLOR;
-	float2 uv0 : TEXCOORD0;
-	float2 uv1 : TEXCOORD1;
-	float4 tessellation : TEXCOORD2;
-};
-
-[domain("quad")]
-//[partitioning("fractional_even")]
-[partitioning("integer")]
-[outputtopology("triangle_cw")]
-[outputcontrolpoints(25)]
-[patchconstantfunc("HSTerrainTessellationConstant")]
-[maxtessfactor(64.0f)]
-HS_TERRAIN_TESSELLATION_OUTPUT HSTerrainTessellation(InputPatch<VS_TERRAIN_TESSELLATION_OUTPUT, 25> input, uint i : SV_OutputControlPointID)
-{
-	HS_TERRAIN_TESSELLATION_OUTPUT output;
-
-	output.position = input[i].position;
-	output.color = input[i].color;
-	output.uv0 = input[i].uv0;
-	output.uv1 = input[i].uv1;
-
-	return(output);
-}
-
-float CalculateTessFactor(float3 f3Position)
-{
-	float fDistToCamera = distance(f3Position, gvCameraPosition);
-	float s = saturate((fDistToCamera - 10.0f) / (500.0f - 10.0f));
-	return(lerp(64.0f, 1.0f, s));
-	//	return(pow(2, lerp(20.0f, 4.0f, s)));
-}
-
-HS_TERRAIN_TESSELLATION_CONSTANT HSTerrainTessellationConstant(InputPatch<VS_TERRAIN_TESSELLATION_OUTPUT, 25> input)
-{
-	HS_TERRAIN_TESSELLATION_CONSTANT output;
-
-	{
-		float3 e0 = 0.5f * (input[0].positionW + input[4].positionW);
-		float3 e1 = 0.5f * (input[0].positionW + input[20].positionW);
-		float3 e2 = 0.5f * (input[4].positionW + input[24].positionW);
-		float3 e3 = 0.5f * (input[20].positionW + input[24].positionW);
-
-		output.fTessEdges[0] = CalculateTessFactor(e0);
-		output.fTessEdges[1] = CalculateTessFactor(e1);
-		output.fTessEdges[2] = CalculateTessFactor(e2);
-		output.fTessEdges[3] = CalculateTessFactor(e3);
-
-		float3 f3Sum = float3(0.0f, 0.0f, 0.0f);
-		for (int i = 0; i < 25; i++) f3Sum += input[i].positionW;
-		float3 f3Center = f3Sum / 25.0f;
-		output.fTessInsides[0] = output.fTessInsides[1] = CalculateTessFactor(f3Center);
-	}
-
-	return(output);
-}
-
-void BernsteinCoeffcient5x5(float t, out float fBernstein[5])
-{
-	float tInv = 1.0f - t;
-	fBernstein[0] = tInv * tInv * tInv * tInv;
-	fBernstein[1] = 4.0f * t * tInv * tInv * tInv;
-	fBernstein[2] = 6.0f * t * t * tInv * tInv;
-	fBernstein[3] = 4.0f * t * t * t * tInv;
-	fBernstein[4] = t * t * t * t;
-}
-
-float3 CubicBezierSum5x5(OutputPatch<HS_TERRAIN_TESSELLATION_OUTPUT, 25> patch, float uB[5], float vB[5])
-{
-	float3 f3Sum = float3(0.0f, 0.0f, 0.0f);
-	f3Sum = vB[0] * (uB[0] * patch[0].position + uB[1] * patch[1].position + uB[2] * patch[2].position + uB[3] * patch[3].position + uB[4] * patch[4].position);
-	f3Sum += vB[1] * (uB[0] * patch[5].position + uB[1] * patch[6].position + uB[2] * patch[7].position + uB[3] * patch[8].position + uB[4] * patch[9].position);
-	f3Sum += vB[2] * (uB[0] * patch[10].position + uB[1] * patch[11].position + uB[2] * patch[12].position + uB[3] * patch[13].position + uB[4] * patch[14].position);
-	f3Sum += vB[3] * (uB[0] * patch[15].position + uB[1] * patch[16].position + uB[2] * patch[17].position + uB[3] * patch[18].position + uB[4] * patch[19].position);
-	f3Sum += vB[4] * (uB[0] * patch[20].position + uB[1] * patch[21].position + uB[2] * patch[22].position + uB[3] * patch[23].position + uB[4] * patch[24].position);
-
-	return(f3Sum);
-}
-
-[domain("quad")]
-DS_TERRAIN_TESSELLATION_OUTPUT DSTerrainTessellation(HS_TERRAIN_TESSELLATION_CONSTANT patchConstant, float2 uv : SV_DomainLocation, OutputPatch<HS_TERRAIN_TESSELLATION_OUTPUT, 25> patch)
-{
-	DS_TERRAIN_TESSELLATION_OUTPUT output = (DS_TERRAIN_TESSELLATION_OUTPUT)0;
-
-	float uB[5], vB[5];
-	BernsteinCoeffcient5x5(uv.x, uB);
-	BernsteinCoeffcient5x5(uv.y, vB);
-
-	output.color = lerp(lerp(patch[0].color, patch[4].color, uv.x), lerp(patch[20].color, patch[24].color, uv.x), uv.y);
-	output.uv0 = lerp(lerp(patch[0].uv0, patch[4].uv0, uv.x), lerp(patch[20].uv0, patch[24].uv0, uv.x), uv.y);
-	output.uv1 = lerp(lerp(patch[0].uv1, patch[4].uv1, uv.x), lerp(patch[20].uv1, patch[24].uv1, uv.x), uv.y);
-
-	float3 position = CubicBezierSum5x5(patch, uB, vB);
-	matrix mtxWorldViewProjection = mul(mul(gmtxGameObject, gmtxView), gmtxProjection);
-	output.position = mul(float4(position, 1.0f), mtxWorldViewProjection);
-
-	output.tessellation = float4(patchConstant.fTessEdges[0], patchConstant.fTessEdges[1], patchConstant.fTessEdges[2], patchConstant.fTessEdges[3]);
-
-	return(output);
-}
-
-PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSTerrainTessellation(DS_TERRAIN_TESSELLATION_OUTPUT input) : SV_TARGET
-{
-	float4 cColor = float4(0.0f, 1.0f, 0.0f, 1.0f);
-
-	if (gnRenderMode & (DEBUG_TESSELLATION))
-	{
-		if (input.tessellation.w <= 5.0f) cColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 10.0f) cColor = float4(0.0f, 1.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 20.0f) cColor = float4(0.0f, 0.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 30.0f) cColor = float4(1.0f, 0.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 40.0f) cColor = float4(1.0f, 1.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 50.0f) cColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 55.0f) cColor = float4(0.2f, 0.2f, 0.72f, 1.0f);
-		else if (input.tessellation.w <= 60.0f) cColor = float4(0.5f, 0.75f, 0.75f, 1.0f);
-		else cColor = float4(0.87f, 0.17f, 1.0f, 1.0f);
-	}
-	else
-	{
-		float4 cBaseTexColor = gtxtTerrainBaseTexture.Sample(gSamplerState, input.uv0);
-		float fAlphas[2];
-		fAlphas[0] = gtxtTerrainAlphaTexture[0].Sample(gSamplerState, input.uv0).w;
-		fAlphas[1] = gtxtTerrainAlphaTexture[1].Sample(gSamplerState, input.uv0).w;
-
-		float4 cDetailTexColors[3];
-		cDetailTexColors[0] = gtxtTerrainDetailTextures[0].Sample(gSamplerState, input.uv1 * 2.0f);
-		cDetailTexColors[1] = gtxtTerrainDetailTextures[1].Sample(gSamplerState, input.uv1 * 2.0f);
-		cDetailTexColors[2] = gtxtTerrainDetailTextures[2].Sample(gSamplerState, input.uv1 * 2.0f);
-
-		cColor = input.color * saturate((cBaseTexColor * 0.6f) + (cDetailTexColors[1] * 0.4f));
-		cColor += lerp(cBaseTexColor * 0.25f, cDetailTexColors[2], 1.0f - fAlphas[0]);
-
-		if (fAlphas[1] < 0.35f) cColor = saturate((cBaseTexColor * 0.3f) + (cDetailTexColors[0] * 0.7f));
-	}
+	float4 cBaseTexColor = gtxtTerrainBaseTexture.Sample(gSamplerState, input.uv0);
+	float4 cDetailTexColor = gtxtTerrainDetailTexture.Sample(gSamplerState, input.uv1*2.0f);
+	//float4 cColor = saturate((cBaseTexColor * 0.6f) + (cDetailTexColor * 0.4f));
+	float4 cColor = input.color * saturate((cBaseTexColor * 0.5f) + (cDetailTexColor * 0.5f));
 
 	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
-	//float grayscale = (cColor.r + cColor.g + cColor.b) / 3.0f;
-	//output.f4Scene = output.f4Color = float4(grayscale,grayscale,grayscale,1.0f);
 
 	output.f4Scene = output.f4Color = cColor;
 	output.fDepth = 1.0f - input.position.z;
@@ -373,11 +256,10 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSTerrainTessellation(DS_TERRAIN_TESSELLATION_
 	return(output);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 RWTexture2D<float4> gtxtRWOutput : register(u0);
-Texture2D<float4> gtxtInputTextures[3] : register(t8);
-Texture2D gtxtOutput : register(t11);
+Texture2D<float4> gtxtInputTextures[3] : register(t4);
+Texture2D gtxtOutput : register(t7);
 
 groupshared float4 gTextureCache[(480 + 2 * 5)];
 groupshared float4 gHorzCache[(640 + 2 * 5)];
@@ -485,6 +367,103 @@ float4 PSPostProcessing(VS_TEXTURED_OUTPUT input) : SV_Target
 	return(cColor);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Animation
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Texture2D<float4> gtxtModelDiffuseTexture : register(t9);
+struct VS_WIREFRAME_INPUT
+{
+	float3 position : POSITION;
+	float2 uv : TEXCOORD;
+};
+
+struct VS_WIREFRAME_OUTPUT
+{
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD;
+};
+
+VS_WIREFRAME_OUTPUT VSModelTextured(VS_WIREFRAME_INPUT input)
+{
+	VS_WIREFRAME_OUTPUT output;
+
+	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
+	output.uv = input.uv;
+
+	return(output);
+}
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSModelTextured(VS_WIREFRAME_OUTPUT input) : SV_TARGET
+{
+	float4 cColor = gtxtModelDiffuseTexture.Sample(gSamplerState, input.uv);
+
+	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+
+	output.f4Scene = output.f4Color = cColor;
+	output.fDepth = 1.0f - input.position.z;
+	return(output);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+#define MAX_VERTEX_INFLUENCES			4
+#define SKINNED_ANIMATION_BONES			128
+Texture2D<float4> gtxtAnimationDiffuseTexture : register(t8);
+
+cbuffer cbBoneOffsets : register(b7)
+{
+	float4x4 gpmtxBoneOffsets[SKINNED_ANIMATION_BONES];
+};
+
+cbuffer cbBoneTransforms : register(b8)
+{
+	float4x4 gpmtxBoneTransforms[SKINNED_ANIMATION_BONES];
+};
+
+struct VS_SKINNED_INPUT
+{
+	float3 position : POSITION;
+	int4 indices : BONEINDEX;
+	float4 weights : BONEWEIGHT;
+	float2 uv :TEXCOORD;
+};
+
+struct VS_SKINNED_OUTPUT
+{
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD;
+};
+
+VS_SKINNED_OUTPUT VSSkinnedAnimation(VS_SKINNED_INPUT input)
+{
+	VS_SKINNED_OUTPUT output;
+
+	float3 positionW = float3(0.0f, 0.0f, 0.0f);
+	matrix mtxVertexToBoneWorld;
+	for (int i = 0; i < MAX_VERTEX_INFLUENCES; i++)
+	{
+		mtxVertexToBoneWorld = mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]);
+		positionW += input.weights[i] * mul(float4(input.position, 1.0f), mtxVertexToBoneWorld).xyz;
+	}
+	output.uv = input.uv;
+	output.position = mul(mul(float4(positionW, 1.0f), gmtxView), gmtxProjection);
+	//	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
+
+	return(output);
+}
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSSkinnedAnimation(VS_SKINNED_OUTPUT input) : SV_TARGET
+{
+	float4 cColor = gtxtAnimationDiffuseTexture.Sample(gSamplerState, input.uv);
+
+	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+
+	output.f4Scene = output.f4Color = cColor;
+	output.fDepth = 1.0f - input.position.z;
+
+	return(output);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

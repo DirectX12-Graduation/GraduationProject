@@ -8,6 +8,9 @@
 
 #include "GameObject.h"
 #include "Camera.h"
+#include "Animation.h"
+
+class CScene;
 
 struct CB_PLAYER_INFO
 {
@@ -72,6 +75,8 @@ public:
 			false);
 	}
 
+	virtual bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+
 	XMFLOAT3& GetVelocity() { return(m_xmf3Velocity); }
 	float GetYaw() { return(m_fYaw); }
 	float GetPitch() { return(m_fPitch); }
@@ -113,21 +118,4 @@ public:
 	//플레이어의 카메라가 3인칭 카메라일 때 플레이어(메쉬)를 렌더링한다. 
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
 	bool IsPlayerFast();
-public:
-	bool m_bRoom = false;
-	ID3D12Resource* m_pd3dcbPlayer = NULL;
-protected:
-	CB_PLAYER_INFO* m_pcbMappedPlayer = NULL;
-};
-
-class CTerrainPlayer : public CPlayer
-{
-public:
-	CTerrainPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL, int nMeshes = 1);
-	virtual ~CTerrainPlayer();
-	
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
-	
-	virtual void OnPlayerUpdateCallback(float fTimeElapsed);
-	virtual void OnCameraUpdateCallback(float fTimeElapsed);
 };

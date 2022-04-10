@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Mesh.h"
 #include "Camera.h"
-
+#include "Animation.h"
 
 #define RESOURCE_TEXTURE2D			0x01
 #define RESOURCE_TEXTURE2D_ARRAY	0x02	//[]
@@ -11,13 +11,6 @@
 #define RESOURCE_STRUCTURED_BUFFER	0x06
 
 class CShader;
-
-//게임 객체의 정보를 셰이더에게 넘겨주기 위한 구조체(상수 버퍼)이다.
-struct CB_GAMEOBJECT_INFO
-{
-	XMFLOAT4X4 m_xmf4x4World;
-	UINT m_nMaterial;
-};
 
 class CTexture
 {
@@ -70,7 +63,7 @@ public:
 	void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nParameterIndex, int nTextureIndex);
 	void ReleaseShaderVariables();
 
-	void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, UINT nResourceType, UINT nIndex);
+	void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, UINT nIndex, bool bIsDDSFile = true);
 	void LoadBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pData, UINT nElements, UINT nStride, DXGI_FORMAT ndxgiFormat, UINT nIndex);
 	void CreateBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pData, UINT nElements, UINT nStride, DXGI_FORMAT dxgiFormat, D3D12_HEAP_TYPE d3dHeapType, D3D12_RESOURCE_STATES d3dResourceStates, UINT nIndex);
 	ID3D12Resource* CreateTexture(ID3D12Device* pd3dDevice, UINT nWidth, UINT nHeight, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue, UINT nResourceType, UINT nIndex);
@@ -97,7 +90,7 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetUavGpuDescriptorHandle(int nIndex) { return(m_pd3dUavGpuDescriptorHandles[nIndex]); }
 
 	int GetTextures() { return(m_nTextures); }
-	ID3D12Resource* GetResource(int nIndex) { return(m_ppd3dTextures[nIndex]); }
+	ID3D12Resource* GetTexture(int nIndex) { return(m_ppd3dTextures[nIndex]); }
 	_TCHAR* GetTextureName(int nIndex) { return(m_ppstrTextureNames[nIndex]); }
 
 	UINT GetTextureType() { return(m_nTextureType); }
@@ -114,31 +107,61 @@ public:
 class CMaterial
 {
 public:
-	CMaterial();
+	CMaterial(int nTextures);
 	virtual ~CMaterial();
 
 private:
-	int								m_nReferences = 0;
+	int						m_nReferences = 0;
 
 public:
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
-	XMFLOAT4						m_xmf4Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+public:
+	XMFLOAT4				m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4				m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4				m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4				m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	UINT							m_nReflection = 0;
-	CTexture* m_pTexture = NULL;
-	CShader* m_pShader = NULL;
+	UINT					m_nReflection = 0;
+	CShader*				m_pShader = NULL;
 
-	void SetAlbedo(XMFLOAT4 xmf4Albedo) { m_xmf4Albedo = xmf4Albedo; }
+	UINT					m_nType = 0x00;
+
+	float					m_fGlossiness = 0.0f;
+	float					m_fSmoothness = 0.0f;
+	float					m_fSpecularHighlight = 0.0f;
+	float					m_fMetallic = 0.0f;
+	float					m_fGlossyReflection = 0.0f;
+
+	int 					m_nTextures = 0;
+	CTexture** m_ppTextures = NULL; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
+	_TCHAR(*m_ppstrTextureNames)[64] = NULL;
+
+public:
+	static CShader* m_pWireFrameShader;
+	static CShader* m_pSkinnedAnimationWireFrameShader;
+
+public:
+
+	void SetAlbedo(XMFLOAT4 xmf4Albedo) { m_xmf4AlbedoColor = xmf4Albedo; }
 	void SetReflection(UINT nReflection) { m_nReflection = nReflection; }
-	void SetTexture(CTexture* pTexture);
+	void SetMaterialType(UINT nType) { m_nType |= nType; }
+	void SetTexture(CTexture* pTexture, UINT nTexture = 0);
+	void SetTexture(int nTexture);
 	void SetShader(CShader* pShader);
 
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseShaderVariables();
-
 	void ReleaseUploadBuffers();
+
+	//void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nType, UINT nRootParameter, _TCHAR* pwstrTextureName, CTexture** ppTexture, CGameObject* pParent, FILE* pInFile, CShader* pShader);
+
+	static void CMaterial::PrepareShaders(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+
+	void SetWireFrameShader() { CMaterial::SetShader(m_pWireFrameShader); }
+	void SetSkinnedAnimationWireFrameShader() { CMaterial::SetShader(m_pSkinnedAnimationWireFrameShader); }
 };
 
 
@@ -146,73 +169,113 @@ public:
 
 class CGameObject
 {
+private:
+	int								m_nReferences = 0;
+
 public:
-	CGameObject(int nMeshes = 1);
+	void AddRef();
+	void Release();
+
+public:
+	CGameObject();
+	CGameObject(int nMaterials);
 	virtual ~CGameObject();
 
 public:
+	char m_pstrFrameName[64];
+
+	bool m_bActive = true;
+
+	XMFLOAT4X4 m_xmf4x4ToParent;
 	XMFLOAT4X4 m_xmf4x4World;
 
-	//게임 객체는 여러 개의 메쉬를 포함하는 경우 게임 객체가 가지는 메쉬들에 대한 포인터와 그 개수이다.
-	CMesh **m_ppMeshes = NULL;
-	int m_nMeshes = 0;
+	XMFLOAT3 m_xmf3Scale;
+	XMFLOAT3 m_xmf3Rotation;
+	XMFLOAT3 m_xmf3Translation;
 
-	CMaterial* m_pMaterial = NULL;
+	CGameObject* m_pParent = NULL;
+	CGameObject* m_pChild = NULL;
+	CGameObject* m_pSibling = NULL;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
+	CMesh* m_pMesh = NULL;
 
-	bool							m_bActive = true;
+	int	m_nMaterials = 0;
+	CMaterial** m_ppMaterials = NULL;
 
 	BoundingBox						m_xmBoundingBox;
 
-	ID3D12Resource* m_pd3dcbGameObject = NULL;
-	CB_GAMEOBJECT_INFO* m_pcbMappedGameObject = NULL;
-protected:
+	CTexture* m_pTexture;
 
 public:
-	virtual void SetMesh(int nIndex, CMesh* pMesh);
-	virtual void SetShader(CShader* pShader);
-	void SetMaterial(CMaterial* pMaterial);
+	void SetMesh(CMesh* pMesh);
+	void SetShader(CShader* pShader);
+	void SetShader(int nMaterial, CShader* pShader);
+	void SetWireFrameShader();
+	void SetSkinnedAnimationWireFrameShader();
+	void SetMaterial(int nMaterial, CMaterial* pMaterial);
+	void SetScale(XMFLOAT3& xmf3Scale) { m_xmf3Scale = xmf3Scale; }
 
-	void SetCbvGPUDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE d3dCbvGPUDescriptorHandle) { m_d3dCbvGPUDescriptorHandle = d3dCbvGPUDescriptorHandle; }
-	void SetCbvGPUDescriptorHandlePtr(UINT64 nCbvGPUDescriptorHandlePtr) { m_d3dCbvGPUDescriptorHandle.ptr = nCbvGPUDescriptorHandlePtr; }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetCbvGPUDescriptorHandle() { return(m_d3dCbvGPUDescriptorHandle); }
+	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
 
-	// 상수 버퍼를 생성한다. 
-	virtual void CreateShaderVariables(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList 
-	*pd3dCommandList);
-	// 상수 버퍼의 내용을 갱신한다.
+	virtual void BuildMaterials(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
+
+	virtual void OnPrepareAnimate() { }
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+
+	virtual void OnPrepareRender() {};
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList *pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 
-	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
-	virtual void OnPrepareRender() {};
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-	
-	//virtual void BuildMaterials(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
+	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
+	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* pMaterial);
+
 	void ReleaseUploadBuffers();
 
-// 게임 객체의 월드 변환 행렬에서 위치 벡터와 방향(x-축, y-축, z-축) 벡터를 반환한다. 
 	XMFLOAT3 GetPosition();
 	XMFLOAT3 GetLook();
 	XMFLOAT3 GetUp();
 	XMFLOAT3 GetRight();
 
-// 게임 객체의 위치를 설정한다.
 	void SetPosition(float x, float y, float z);
 	void SetPosition(XMFLOAT3 xmf3Position);
+	void SetScale(float x, float y, float z);
 
-// 게임 객체를 로컬 x-축, y-축, z-축 방향으로 이동한다.
 	void MoveStrafe(float fDistance = 1.0f);
 	void MoveUp(float fDistance = 1.0f);
 	void MoveForward(float fDistance = 1.0f);
 
-// 게임 객체를 회전(x-축, y-축, z-축)한다. 
 	void Rotate(float fPitch = 10.0f, float fYaw = 10.0f, float fRoll = 10.0f);
-	void  Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
+	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
+	void Rotate(XMFLOAT4* pxmf4Quaternion);
 
 	void SetActive(bool bActive) { m_bActive = bActive; }
 	void CalculateBoundingBox();
+
+	CGameObject* GetParent() { return(m_pParent); }
+	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
+
+	CGameObject* FindFrame(char* pstrFrameName);
+	void SetActive(char* pstrFrameName, bool bActive);
+	UINT GetMeshType(int n) { return((m_pMesh) ? m_pMesh->GetType() : 0x00); }
+
+public:
+	CAnimationController* m_pSkinnedAnimationController = NULL;
+
+	CSkinnedMesh* FindSkinnedMesh(char* pstrSkinnedMeshName);
+	void FindAndSetSkinnedMesh(CSkinnedMesh** ppSkinnedMeshes, int* pnSkinnedMesh);
+
+	void SetTrackAnimationSet(int nAnimationTrack, int nAnimationSet);
+	void SetTrackAnimationPosition(int nAnimationTrack, float fPosition);
+
+	static void LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoadedModel);
+	static CGameObject* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, CShader* pShader, int* pnSkinnedMeshes);
+
+	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName, CShader* pShader);
+
+	static void PrintFrameInfo(CGameObject* pGameObject, CGameObject* pParent);
 };
 
 class CRotatingObject : public CGameObject
@@ -230,7 +293,7 @@ public:
 	void SetRotationAxis(XMFLOAT3 xmf3RotationAxis) {
 		m_xmf3RotationAxis = xmf3RotationAxis;
 	}
-	virtual void Animate(float fTimeElapsed);
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
 };
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -238,32 +301,28 @@ public:
 class CHeightMapTerrain : public CGameObject
 {
 public:
-	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, int nWidth, int nLength, int nBlockWidth, int nBlockLength, XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color);
+	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, 
+		int nWidth, int nLength, XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color);
 	virtual ~CHeightMapTerrain();
 
 private:
 	CHeightMapImage* m_pHeightMapImage;
 
-	int							m_nWidth; //Width of HeightMapImage
-	int							m_nLength; //Height of HeightMapImage
+	int							m_nWidth;
+	int							m_nLength;
 
-	XMFLOAT3					m_xmf3Scale; //Scaler for World Coordinates
+	XMFLOAT3					m_xmf3Scale;
 
 public:
-	float GetHeight(float x, float z);
-	XMFLOAT3 GetNormal(float x, float z) { return(m_pHeightMapImage->GetHeightMapNormal(int(x / m_xmf3Scale.x), int(z / m_xmf3Scale.z), m_xmf3Scale)); }
+	float GetHeight(float x, float z, bool bReverseQuad = false) { return(m_pHeightMapImage->GetHeight(x, z, bReverseQuad) * m_xmf3Scale.y); } //World
+	XMFLOAT3 GetNormal(float x, float z) { return(m_pHeightMapImage->GetHeightMapNormal(int(x / m_xmf3Scale.x), int(z / m_xmf3Scale.z))); }
 
-	int GetRawImageWidth() { return(m_pHeightMapImage->GetRawImageWidth()); }
-	int GetRawImageLength() { return(m_pHeightMapImage->GetRawImageLength()); }
+	int GetHeightMapWidth() { return(m_pHeightMapImage->GetHeightMapWidth()); }
+	int GetHeightMapLength() { return(m_pHeightMapImage->GetHeightMapLength()); }
 
 	XMFLOAT3 GetScale() { return(m_xmf3Scale); }
-#ifdef _WITH_VERTICES_AS_SCALING
-	float GetWidth() { return(float(m_nWidth)); }
-	float GetLength() { return(float(m_nLength)); }
-#else
-	int GetWidth() { return(m_nWidth * m_xmf3Scale.x); }
-	int GetLength() { return(m_nLength * m_xmf3Scale.z); }
-#endif
+	float GetWidth() { return(m_nWidth * m_xmf3Scale.x); }
+	float GetLength() { return(m_nLength * m_xmf3Scale.z); }
 };
 
 
@@ -276,4 +335,111 @@ public:
 	virtual ~CSkyBox();
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class CCoverObject : public CGameObject
+{
+public:
+	CCoverObject(int nMeshes = 1);
+	virtual ~CCoverObject();
+
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+};
+
+class CMovingCoverObject : public CCoverObject
+{
+public:
+	CMovingCoverObject(int nMeshes = 1);
+	virtual ~CMovingCoverObject();
+
+private:
+	// 정해진 방향대로 움직이다가 point1/point2에 도달하면 방향을 바꿈
+	XMFLOAT3 m_xmf3Direction;
+	float m_fSpeed;
+
+	XMFLOAT3 m_xmf3Point1;
+	XMFLOAT3 m_xmf3Point2;
+
+public:
+	void SetMovingDirection(XMFLOAT3 xmf3Direction) { m_xmf3Direction = xmf3Direction; }
+	void SetMovingSpeed(float fSpeed) { m_fSpeed = fSpeed; }
+	void SetPoints(XMFLOAT3 xmf3Center);
+
+public:
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+};
+
+class CInteractiveCoverObject : public CCoverObject
+{
+public:
+	CInteractiveCoverObject(int nMeshes = 1);
+	virtual ~CInteractiveCoverObject();
+
+private:
+	// 플레이어가 상호작용 키를 누르면 5.0f가 되고 엄폐 가능
+	// Animate 함수에서 시간이 감소하다가 0.0f가 되면 엄폐 불가능 상태로 전환
+	float m_fInteractTime;
+
+public:
+	void InteractedByPlayer() { m_fInteractTime = 5.0f; }
+	bool IsInteracted() { return (m_fInteractTime > 0.0f) ? true : false; }
+
+public:
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+};
+
+////////////////////////////////////////////////////
+
+class CCannonballObject : public CGameObject
+{
+public:
+	CCannonballObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CCannonballObject();
+
+private:
+	XMFLOAT3 m_xmf3Velocity;
+	bool m_bIsFired = false;
+	LPVOID m_pUpdatedContext;
+
+public:
+	virtual void Animate(float fTimeElapsed, CCamera* pCamrea = NULL);
+	void SetUpdatedContext(LPVOID pContext) { m_pUpdatedContext = pContext; }
+
+	void SetValues(XMFLOAT3 origin, XMFLOAT3 velocity);
+	void SetFire(bool fire) { m_bIsFired = fire; }
+
+	bool IsReadyToFire();
+};
+
+//
+
+class CCannonObject : public CGameObject
+{
+public:
+	CCannonObject();
+	virtual ~CCannonObject();
+
+private:
+	CCannonballObject* m_pCannonball;
+
+public:
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Animate(float fTimeElapsed, CCamera* pCamera = NULL);
+
+	void RotateCannon(XMFLOAT3* pxmf3Axis, float fAngle);
+
+	void FireCannonBall(XMFLOAT3 Origin, XMFLOAT3 Velocity);
+	void SetCannonball(CCannonballObject* pCannonball) { m_pCannonball = pCannonball; }
+	CCannonballObject* GetCannonball() { return m_pCannonball; }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+class CAngrybotObject : public CGameObject
+{
+public:
+	CAngrybotObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, int nAnimationTracks);
+	virtual ~CAngrybotObject();
 };

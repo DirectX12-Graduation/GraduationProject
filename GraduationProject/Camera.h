@@ -7,10 +7,9 @@
 #define SPACESHIP_CAMERA 0x02
 #define THIRD_PERSON_CAMERA 0x03
 
-//프레임 버퍼의 크기와 종횡비(Aspect Ratio)를 나타내는 상수
-#define ASPECT_RATIO (float(FRAME_BUFFER_WIDTH) / float(FRAME_BUFFER_HEIGHT))
-
 class CPlayer;
+
+#define _WITH_LEFT_HAND_COORDINATES
 
 // 카메라 상수 버퍼를 위한 구조체
 struct VS_CB_CAMERA_INFO
@@ -123,11 +122,7 @@ public:
 	D3D12_RECT GetScissorRect() { return(m_d3dScissorRect); }
 
 	//카메라를 xmf3Shift 만큼 이동한다.
-	virtual void Move(XMFLOAT3& xmf3Shift) {
-		m_xmf3Position.x += xmf3Shift.x;
-		m_xmf3Position.y += xmf3Shift.y;
-		m_xmf3Position.z += xmf3Shift.z;
-	}
+	virtual void Move(const XMFLOAT3& xmf3Shift) { m_xmf3Position.x += xmf3Shift.x; m_xmf3Position.y += xmf3Shift.y; m_xmf3Position.z += xmf3Shift.z; }
 	// 카메라를 x-축, y-축, z-축으로 회전하는 가상함수이다. 
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
 	// 카메라의 이동, 회전에 따라 카메라의 정보를 갱신하는 가상함수이다.
