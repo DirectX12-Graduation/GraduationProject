@@ -381,6 +381,10 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nShaders = 2;
 	m_ppShaders = new CShader * [m_nShaders];
 
+	CObjectsShader* pObjectsShader = new CObjectsShader();
+	pObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	pObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
+
 	CCoverObjectsShader* pCoverObjectsShader = new CCoverObjectsShader();
 	pCoverObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
 	pCoverObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
@@ -403,6 +407,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pShadowShader = new CShadowMapShader(pObjectsShader);
 	m_pShadowShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
 	m_pShadowShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pDepthRenderShader->GetDepthTexture());
+	
 	CLoadedModelInfo* pAngrybotModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "../Assets/Model/Angrybot.bin", NULL);
 	m_ppGameObjects[0] = new CAngrybotObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, pAngrybotModel, 1);
 	m_ppGameObjects[0]->m_pSkinnedAnimationController->SetTrackAnimationSet(0, 0);
@@ -745,10 +750,11 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->UpdateShaderVariables(pd3dCommandList);
 
-	if (m_pShadowShader) m_pShadowShader->Render(pd3dCommandList, pCamera);
 
 	if (m_pSkyBox) m_pSkyBox->Render(pd3dCommandList, pCamera);
 	if (m_pTerrain) m_pTerrain->Render(pd3dCommandList, pCamera);
+
+	if (m_pShadowShader) m_pShadowShader->Render(pd3dCommandList, pCamera);
 
 	for (int i = 0; i < m_nGameObjects; i++)
 	{

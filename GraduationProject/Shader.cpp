@@ -602,9 +602,9 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
 
-	float fxPitch = 12.0f * 3.5f;
-	float fyPitch = 12.0f * 3.5f;
-	float fzPitch = 12.0f * 3.5f;
+	float fxPitch = 50.0f * 3.5f;
+	float fyPitch = 50.0f * 3.5f;
+	float fzPitch = 50.0f * 3.5f;
 
 	float fTerrainWidth = pTerrain->GetWidth();
 	float fTerrainLength = pTerrain->GetLength();
@@ -612,7 +612,7 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	int xObjects = int(fTerrainWidth / fxPitch);
 	int yObjects = 2;
 	int zObjects = int(fTerrainLength / fzPitch);
-	m_nObjects = (xObjects * yObjects * zObjects);
+	m_nObjects = (xObjects * yObjects * zObjects) + 1;
 
 	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
 	pTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/stones.dds", 0);
@@ -643,7 +643,7 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 				pRotatingObject = new CRotatingObject(1);
 				pRotatingObject->SetMesh(pCubeMesh);
 #ifndef _WITH_BATCH_MATERIAL
-				pRotatingObject->SetMaterial(1,pCubeMaterial);
+				pRotatingObject->SetMaterial(0,pCubeMaterial);
 				pRotatingObject->m_ppMaterials[0]->SetReflection(i % MAX_MATERIALS);
 #endif
 				float xPosition = x * fxPitch;
@@ -664,6 +664,15 @@ void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 			}
 		}
 	}
+	CPlaneMeshIlluminated* pPlaneMesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, _PLANE_WIDTH, 0.0f, _PLANE_HEIGHT, 0.0f, 0.0f, 0.0f);
+
+	CMaterial* pPlaneMaterial = new CMaterial(1);
+	pPlaneMaterial->SetReflection(1);
+
+	m_ppObjects[m_nObjects-1] = new CGameObject(1);
+	m_ppObjects[m_nObjects-1]->SetMesh(pPlaneMesh);
+	m_ppObjects[m_nObjects-1]->SetMaterial(0,pPlaneMaterial);
+	m_ppObjects[m_nObjects-1]->SetPosition(0.0f, 0.0f, 0.0f);
 }
 
 void CObjectsShader::ReleaseObjects()
@@ -1740,12 +1749,15 @@ void CDepthRenderShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCam
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->UpdateShaderVariables(pd3dCommandList);
 
-	for (int i = 0; i < m_pObjectsShader->m_nObjects; i++)
+	int num = m_pObjectsShader->GetObjectsNum();
+	CGameObject** pGameObjects = m_pObjectsShader->GetObjects();
+
+	for (int i = 0; i < num; i++)
 	{
-		if (m_pObjectsShader->m_ppObjects[i])
+		if (pGameObjects[i])
 		{
-			m_pObjectsShader->m_ppObjects[i]->UpdateShaderVariables(pd3dCommandList);
-			m_pObjectsShader->m_ppObjects[i]->Render(pd3dCommandList, pCamera);
+			pGameObjects[i]->UpdateShaderVariables(pd3dCommandList);
+			pGameObjects[i]->Render(pd3dCommandList, pCamera);
 		}
 	}
 }
@@ -1830,14 +1842,17 @@ void CShadowMapShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamer
 
 	UpdateShaderVariables(pd3dCommandList);
 
-	//for (int i = 0; i < m_pObjectsShader->m_nObjects; i++)
-	//{
-	//	if (m_pObjectsShader->m_ppObjects[i])
-	//	{
-	//		m_pObjectsShader->m_ppObjects[i]->UpdateShaderVariables(pd3dCommandList);
-	//		m_pObjectsShader->m_ppObjects[i]->Render(pd3dCommandList, pCamera);
-	//	}
-	//}
+	int num = m_pObjectsShader->GetObjectsNum();
+	CGameObject** pGameObjects = m_pObjectsShader->GetObjects();
+
+	for (int i = 0; i < num; i++)
+	{
+		if (pGameObjects[i])
+		{
+			pGameObjects[i]->UpdateShaderVariables(pd3dCommandList);
+			pGameObjects[i]->Render(pd3dCommandList, pCamera);
+		}
+	}
 
 	m_pObjectsShader->Render(pd3dCommandList, pCamera);
 }

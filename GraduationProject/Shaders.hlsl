@@ -511,9 +511,15 @@ VS_SHADOW_MAP_OUTPUT VSShadowMapShadow(VS_LIGHTING_INPUT input)
 	return(output);
 }
 
-float4 PSShadowMapShadow(VS_SHADOW_MAP_OUTPUT input) : SV_TARGET
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSShadowMapShadow(VS_SHADOW_MAP_OUTPUT input) : SV_TARGET
 {
-	float4 cIllumination = Lighting(input.positionW, normalize(input.normalW), true, input.uvs);
+	PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
 
-	return(cIllumination);
+	float4 cIllumination = Lighting(input.positionW, normalize(input.normalW), true, input.uvs);
+	//float4 cIllumination = float4(1.0f, 0.0f, 0.0f, 1.0f);
+
+	output.f4Scene = output.f4Color = cIllumination;
+	output.fDepth = 1.0f - input.position.z;
+
+	return(output);
 }

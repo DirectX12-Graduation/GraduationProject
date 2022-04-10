@@ -91,8 +91,8 @@ using Microsoft::WRL::ComPtr;
 
 #define _WITH_RENDER_SHADOW_MAP
 
-#define _PLANE_WIDTH			1024
-#define _PLANE_HEIGHT			1024
+#define _PLANE_WIDTH			10240
+#define _PLANE_HEIGHT			10240
 
 #define OBJECT_NUM 15
 
