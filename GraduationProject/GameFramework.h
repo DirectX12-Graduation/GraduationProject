@@ -5,6 +5,7 @@
 #include "AnimPlayer.h"
 #include "Shader.h"
 #include "ComputeShader.h"
+#include "ImGuiManager.h"
 
 struct CB_FRAMEWORK_INFO
 {
@@ -102,6 +103,8 @@ public:
 
 	float m_fSpeedVal = 50.0f;
 
+	CImGuiManager m_GuiManager;
+
 protected:
 	ID3D12Resource* m_pd3dcbFrameworkInfo = NULL;
 	CB_FRAMEWORK_INFO* m_pcbMappedFrameworkInfo = NULL;
@@ -111,6 +114,7 @@ public:
 
 	//프레임워크를 초기화하는 함수이다(주 윈도우가 생성되면 호출된다). 
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
+	void InitImGui(const HWND& hMainWnd);
 	void OnDestroy();
 
 	// 스왑 체인 생성

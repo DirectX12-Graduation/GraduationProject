@@ -1,5 +1,7 @@
 ﻿#include "stdafx.h"
 #include "GameFramework.h"
+#include "../Imgui/imgui_impl_dx12.h"
+#include "../Imgui/imgui_impl_win32.h"
 
 CGameFramework::CGameFramework()
 {
@@ -37,6 +39,15 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	BuildObjects();
 	//렌더링할 게임 객체를 생성한다. 
 	return(true);
+}
+
+void CGameFramework::InitImGui(const HWND& hMainWnd)
+{
+	ImGui_ImplWin32_Init(hMainWnd);
+	ImGui_ImplDX12_Init(m_pd3dDevice, m_nSwapChainBuffers,
+		DXGI_FORMAT_R8G8B8A8_UNORM, m_pScene->m_pd3dCbvSrvUavDescriptorHeap,
+		m_pScene->m_pd3dCbvSrvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_pScene->m_pd3dCbvSrvUavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
 void CGameFramework::OnDestroy()
@@ -628,9 +639,18 @@ void CGameFramework::MoveToNextFrame()
 
 void CGameFramework::FrameAdvance()
 {
+
+	m_GuiManager.Frame();
+	if (ImGui::Begin("speed"))
+	{
+		static char buffer[1024];
+		ImGui::InputText("input", buffer, sizeof(buffer));
+	}
+	ImGui::End();
+	m_GuiManager.Render(m_pd3dCommandList);
+
 	//타이머의 시간이 갱신되도록 하고 프레임 레이트를 계산한다. 
 	m_GameTimer.Tick(0.0f);
-
 	ProcessInput();
 	AnimateObjects();
 
@@ -679,7 +699,7 @@ void CGameFramework::FrameAdvance()
 	if (m_pScene->m_pd3dGraphicsRootSignature) m_pd3dCommandList->SetComputeRootSignature(m_pScene->m_pd3dGraphicsRootSignature);
 	m_pd3dCommandList->OMSetRenderTargets(1, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], TRUE, NULL);
 	m_pPostProcessingShader->Render(m_pd3dCommandList, m_pCamera);
-
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData() ,m_pd3dCommandList);
 
 	::SynchronizeResourceTransition(m_pd3dCommandList, m_ppd3dSwapChainBackBuffers[m_nSwapChainBufferIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	::ExecuteCommandList(m_pd3dCommandList, m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
