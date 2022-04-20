@@ -52,6 +52,9 @@
     <Filter Include="헤더 파일\InitHeader">
       <UniqueIdentifier>{d015ef62-9520-4abb-bb23-2cb015586686}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\imgui">
+      <UniqueIdentifier>{ed123bf6-ebda-497b-a697-f911ccc82ac9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraduationProject.h">
@@ -111,6 +114,33 @@
     <ClInclude Include="Collision.h">
       <Filter>헤더 파일\Object</Filter>
     </ClInclude>
+    <ClInclude Include="..\Imgui\imgui_internal.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imgui.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imgui_impl_dx12.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imgui_impl_win32.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imconfig.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imstb_rectpack.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imstb_textedit.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Imgui\imstb_truetype.h">
+      <Filter>소스 파일\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GraduationProject.cpp">
@@ -160,6 +190,30 @@
     </ClCompile>
     <ClCompile Include="Collision.cpp">
       <Filter>소스 파일\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_draw.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_impl_dx12.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_impl_win32.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_tables.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_widgets.cpp">
+      <Filter>소스 파일\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Imgui\imgui_demo.cpp">
+      <Filter>소스 파일\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
