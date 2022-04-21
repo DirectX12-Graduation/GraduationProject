@@ -641,12 +641,7 @@ void CGameFramework::FrameAdvance()
 {
 
 	m_GuiManager.Frame();
-	if (ImGui::Begin("speed"))
-	{
-		static char buffer[1024];
-		ImGui::InputText("input", buffer, sizeof(buffer));
-	}
-	ImGui::End();
+	m_pPlayer->SetImGuiCollider();
 	m_GuiManager.Render(m_pd3dCommandList);
 
 	//타이머의 시간이 갱신되도록 하고 프레임 레이트를 계산한다. 

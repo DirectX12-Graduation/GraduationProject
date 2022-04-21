@@ -821,6 +821,27 @@ void CGameObject::SetIsRotate(bool bVal)
 	if (m_pChild) m_pChild->SetIsRotate(bVal);
 }
 
+void CGameObject::SetImGuiCollider()
+{
+	ImGui::Begin("hierarchy");
+	if (m_pChild) m_pChild->SetImGuiColliderTrees();
+	ImGui::End();
+}
+
+void CGameObject::SetImGuiColliderTrees()
+{
+	string val = (strcmp(m_pstrFrameName,"")) ? m_pstrFrameName : "null";
+
+	if (ImGui::TreeNode(val.c_str()))
+	{
+		if (m_pSibling) m_pSibling->SetImGuiColliderTrees();
+		if (m_pChild) m_pChild->SetImGuiColliderTrees();
+
+		ImGui::TreePop();
+	}
+
+}
+
 CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, CShader* pShader, int* pnSkinnedMeshes)
 {
 	char pstrToken[64] = { '\0' };

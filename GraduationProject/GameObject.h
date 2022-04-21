@@ -2,6 +2,8 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "Animation.h"
+#include "../Imgui/imgui_impl_dx12.h"
+#include "../Imgui/imgui_impl_win32.h"
 
 #define RESOURCE_TEXTURE2D			0x01
 #define RESOURCE_TEXTURE2D_ARRAY	0x02	//[]
@@ -285,6 +287,8 @@ public:
 	void MakeCollider(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	void SetIsRotate(bool bVal);
 	BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
+	void SetImGuiCollider();
+	void SetImGuiColliderTrees();
 };
 
 class CRotatingObject : public CGameObject
