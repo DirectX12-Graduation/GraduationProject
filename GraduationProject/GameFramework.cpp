@@ -538,7 +538,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 	case WM_MOUSEMOVE:
-		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+		//OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
@@ -572,14 +572,14 @@ void CGameFramework::ProcessInput()
 
 		float cxDelta = 0.0f, cyDelta = 0.0f;
 		POINT ptCursorPos;
-		if (GetCapture() == m_hWnd)
-		{
-			SetCursor(NULL);
-			GetCursorPos(&ptCursorPos);
-			cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
-			cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
-			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
-		}
+		//if (GetCapture() == m_hWnd)
+		//{
+		//	SetCursor(NULL);
+		//	GetCursorPos(&ptCursorPos);
+		//	cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
+		//	cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
+		//	SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+		//}
 
 		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
