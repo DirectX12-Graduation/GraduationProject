@@ -824,7 +824,9 @@ void CGameObject::SetIsRotate(bool bVal)
 void CGameObject::SetImGuiCollider()
 {
 	ImGui::Begin("hierarchy");
-	if (m_pChild) m_pChild->SetImGuiColliderTrees();
+	SetImGuiColliderTrees();
+
+	//if (m_pChild) m_pChild->SetImGuiColliderTrees();
 	ImGui::End();
 }
 
@@ -834,6 +836,16 @@ void CGameObject::SetImGuiColliderTrees()
 
 	if (ImGui::TreeNode(val.c_str()))
 	{
+		if (m_pCollider)
+		{
+			XMFLOAT3 pos = m_pCollider->GetPosition();
+			static float f0 = pos.x, f1 = pos.y, f2 = pos.z;
+			ImGui::SliderFloat("X", &f0, 0.0f, 5.0f); //ImGui::SameLine();
+			ImGui::SliderFloat("Y", &f1, 0.0f, 5.0f); //ImGui::SameLine();
+			ImGui::SliderFloat("Z", &f2, 0.0f, 5.0f);
+			SetPosition(f0, f1, f2);
+		}
+
 		if (m_pSibling) m_pSibling->SetImGuiColliderTrees();
 		if (m_pChild) m_pChild->SetImGuiColliderTrees();
 
