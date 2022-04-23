@@ -568,7 +568,7 @@ CObjectsShader::~CObjectsShader()
 
 BoundingBox CObjectsShader::CalculateBoundingBox()
 {
-	for (int i = 0; i < m_nObjects; i++) m_ppObjects[i]->CalculateBoundingBox();
+	//for (int i = 0; i < m_nObjects; i++) m_ppObjects[i]->CalculateBoundingBox();
 
 	BoundingBox xmBoundingBox = m_ppObjects[0]->GetBoundingBox();
 	for (int i = 1; i < m_nObjects; i++)BoundingBox::CreateMerged(xmBoundingBox, xmBoundingBox, m_ppObjects[i]->GetBoundingBox());

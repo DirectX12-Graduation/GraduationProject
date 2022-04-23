@@ -10,6 +10,7 @@ CAnimPlayer::CAnimPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 	CLoadedModelInfo* pAngrybotModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/Knight.bin", NULL);
 	SetChild(pAngrybotModel->m_pModelRootObject, true);
+	LoadFromCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/Bounding/Knight.txt");
 
 	SetAnimationController(pd3dDevice, pd3dCommandList, pAngrybotModel);
 	SetResource(pd3dDevice, pd3dCommandList);

@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <fstream>
 using namespace std;
 
 #ifdef _DEBUG
