@@ -268,3 +268,13 @@ bool CPlayer::OnProcessingKeyboardMessage(
 	return(false);
 }
 
+void CPlayer::SetImGuiCollider()
+{
+	UpdateTransform(nullptr);
+	ImGui::Begin("pos");
+	XMFLOAT3 pos = GetPosition();
+	float f0 = pos.x, f1 = pos.y, f2 = pos.z;
+
+	ImGui::Text("%f %f %f", f0, f1, f2);
+	ImGui::End();
+}

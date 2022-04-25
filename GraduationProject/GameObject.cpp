@@ -816,8 +816,10 @@ void CGameObject::SetIsRotate(bool bVal)
 
 void CGameObject::SetImGuiCollider()
 {
-	ImGui::Begin("hierarchy");
-	SetImGuiColliderTrees();
+	//ImGui::Begin("hierarchy");
+	//SetPosition(f0, f1, f2);
+
+	//SetImGuiColliderTrees();
 
 	//if (m_pChild) m_pChild->SetImGuiColliderTrees();
 	ImGui::End();
@@ -881,7 +883,7 @@ void CGameObject::SetBoundingScales(float x, float y, float z)
 		BOUNDING_STATE cur_state = col->GetBoundingState();
 		if (cur_state == BOUNDING_STATE::SPHERE) continue;
 
-		col->SetBBScale(x, y, z);
+		//col->SetBBScale(x, y, z);
 
 	}
 	if (m_pSibling) m_pSibling->SetBoundingScales(x,y,z);
@@ -917,8 +919,7 @@ void CGameObject::LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 			XMStoreFloat3(&BB.Center, XMLoadFloat3(&center));
 			XMStoreFloat3(&BB.Extents, XMLoadFloat3(&extends));
 
-			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, 
-				BB, BOUNDING_STATE::BODY);
+			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, BB, BOUNDING_STATE::BODY);
 			cols->SetFrameObject(pBoneObject);
 			collisions.emplace_back(cols);
 			m_bHaveBound = true;

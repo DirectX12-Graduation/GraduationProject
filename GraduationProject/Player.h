@@ -59,6 +59,8 @@ public:
 	XMFLOAT3 GetUpVector() { return(m_xmf3Up); }
 	XMFLOAT3 GetRightVector() { return(m_xmf3Right); }
 
+	virtual void SetImGuiCollider();
+
 	void SetVectors();
 
 	void SetFriction(float fFriction) { m_fFriction = fFriction; }

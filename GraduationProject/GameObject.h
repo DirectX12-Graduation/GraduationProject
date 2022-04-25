@@ -290,10 +290,8 @@ public:
 	void SetIsRotate(bool bVal);
 	void LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, string filename);
 	BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
-	void SetImGuiCollider();
+	virtual void SetImGuiCollider();
 	void SetImGuiColliderTrees();
-	BoundingSphere GetBoundingSphere() { return m_xmBoundingSphere; }
-	virtual BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
 	virtual BoundingSphere GetBoundingSphere() { return m_xmBoundingSphere; }
 	void UpdateCollision();
 	void SetBoundingScales(float x, float y, float z);
