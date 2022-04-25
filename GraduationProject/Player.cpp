@@ -47,30 +47,18 @@ void CPlayer::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 
 /*플레이어의 위치를 변경하는 함수이다. 플레이어의 위치는 기본적으로 사용자가 플레이어를 이동하기 위한 키보드를
 누를 때 변경된다. 플레이어의 이동 방향(dwDirection)에 따라 플레이어를 fDistance 만큼 이동한다.*/
-void CPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
+XMFLOAT3 CPlayer::SetMoveShift(DWORD dwDirection, float fDistance)
 {
 	if (dwDirection) {
 		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-		//화살표 키 ‘↑’를 누르면 로컬 z-축 방향으로 이동(전진)한다. 
-		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, 
-		fDistance);
-		//‘↓’를 누르면 반대 방향으로 이동한다. 
-		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,
-			-fDistance);
-		//화살표 키 ‘→’를 누르면 로컬 x-축 방향으로 이동한다. 
-		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, 
-		fDistance);
-		//‘←’를 누르면 반대 방향으로 이동한다. 
-		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,
-			-fDistance);
-		//‘Page Up’을 누르면 로컬 y-축 방향으로 이동한다.
+		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, fDistance);
+		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,-fDistance);
+		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, fDistance);
+		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,-fDistance);
 		if (dwDirection & DIR_UP) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up, fDistance);
-		//‘Page Down’을 누르면 반대 방향으로 이동한다. 
-		if (dwDirection & DIR_DOWN) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up,
-			-fDistance);
+		if (dwDirection & DIR_DOWN) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up,-fDistance);
 		
-		//플레이어를 현재 위치 벡터에서 xmf3Shift 벡터만큼 이동한다.
-		Move(xmf3Shift, bUpdateVelocity);
+		return (xmf3Shift);
 	}
 }
 
@@ -158,19 +146,8 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::Update(float fTimeElapsed)
 {
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
+	float fLength = SetUpdateVelocity(m_xmf3Velocity);
+	XMFLOAT3 xmf3Velocity = CalculateVelocity(fLength, fTimeElapsed, m_xmf3Velocity);
 	Move(xmf3Velocity, false);
 
 	if (m_pPlayerUpdatedContext) OnPlayerUpdateCallback(fTimeElapsed);
@@ -185,6 +162,29 @@ void CPlayer::Update(float fTimeElapsed)
 	float fDeceleration = (m_fFriction * fTimeElapsed);
 	if (fDeceleration > fLength) fDeceleration = fLength;
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity,-fDeceleration, true));
+}
+
+float CPlayer::SetUpdateVelocity(XMFLOAT3& velocity)
+{
+	velocity = Vector3::Add(velocity, m_xmf3Gravity);
+	float fLength = sqrtf(velocity.x * velocity.x + velocity.z * velocity.z);
+	return fLength;
+}
+
+XMFLOAT3 CPlayer::CalculateVelocity(float fLength, float fTimeElapsed, XMFLOAT3& velocity)
+{
+	float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	if (fLength > m_fMaxVelocityXZ)
+	{
+		velocity.x *= (fMaxVelocityXZ / fLength);
+		velocity.z *= (fMaxVelocityXZ / fLength);
+	}
+	float fMaxVelocityY = m_fMaxVelocityY;
+	fLength = sqrtf(velocity.y * velocity.y);
+	if (fLength > m_fMaxVelocityY) velocity.y *= (fMaxVelocityY / fLength);
+
+	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(velocity, fTimeElapsed, false);
+	return (xmf3Velocity);
 }
 
 CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)

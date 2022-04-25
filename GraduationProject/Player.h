@@ -86,7 +86,7 @@ public:
 	void SetCamera(CCamera* pCamera) { m_pCamera = pCamera; }
 
 	//플레이어를 이동하는 함수이다. 
-	void Move(ULONG nDirection, float fDistance, bool bVelocity = false);
+	XMFLOAT3 SetMoveShift(ULONG nDirection, float fDistance);
 	void Move(const XMFLOAT3& xmf3Shift, bool bVelocity = false);
 	void Move(float fxOffset = 0.0f, float fyOffset = 0.0f, float fzOffset = 0.0f);
 	//플레이어를 회전하는 함수이다.
@@ -94,6 +94,9 @@ public:
 
 	//플레이어의 위치와 회전 정보를 경과 시간에 따라 갱신하는 함수이다.
 	void Update(float fTimeElapsed);
+
+	float SetUpdateVelocity(XMFLOAT3& velocity);
+	XMFLOAT3 CalculateVelocity(float fLength, float fTimeElapsed, XMFLOAT3& velocity);
 
 	//플레이어의 위치가 바뀔 때마다 호출되는 함수와 그 함수에서 사용하는 정보를 설정하는 함수이다.
 	virtual void OnPlayerUpdateCallback(float fTimeElapsed) { }

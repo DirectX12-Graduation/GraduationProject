@@ -339,27 +339,35 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	BuildLightsAndMaterials();
 
-	XMFLOAT3 xmf3Scale(8.0f, 2.0f, 8.0f);
+	XMFLOAT3 xmf3Scale(80.0f, 20.0f, 80.0f);
 	XMFLOAT4 xmf4Color(0.0f, 0.3f, 0.0f, 0.0f);
-	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("../Assets/Image/Terrain/HeightMap.raw"), 257, 257, xmf3Scale, xmf4Color);
+	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("../Assets/Image/Terrain/terrain.raw"), 257, 514, xmf3Scale, xmf4Color);
 	m_pRawFormatImage = new CRawFormatImage(L"../Assets/Image/Objects/ObjectsMap03.raw", 257, 257, true);
 
 	m_pSkyBox = new CSkyBox(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 
 	DXGI_FORMAT pdxgiRtvFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
 
-	m_nShaders = 2;
+	//m_nShaders = 2;
+	//m_ppShaders = new CShader * [m_nShaders];
+
+	//CCoverObjectsShader* pCoverObjectsShader = new CCoverObjectsShader();
+	//pCoverObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	//pCoverObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
+	//m_ppShaders[0] = pCoverObjectsShader;
+
+	//CCannonObjectsShader* pCannonObjectsShader = new CCannonObjectsShader();
+	//pCannonObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	//pCannonObjectsShader->BuildObjects(pd3dDevice, m_pd3dGraphicsRootSignature, pd3dCommandList, m_pTerrain);
+	//m_ppShaders[1] = pCannonObjectsShader;
+
+	m_nShaders = 1;
 	m_ppShaders = new CShader * [m_nShaders];
 
-	CCoverObjectsShader* pCoverObjectsShader = new CCoverObjectsShader();
-	pCoverObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
-	pCoverObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
-	m_ppShaders[0] = pCoverObjectsShader;
-
-	CCannonObjectsShader* pCannonObjectsShader = new CCannonObjectsShader();
-	pCannonObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
-	pCannonObjectsShader->BuildObjects(pd3dDevice, m_pd3dGraphicsRootSignature, pd3dCommandList, m_pTerrain);
-	m_ppShaders[1] = pCannonObjectsShader;
+	CObjectsShader* pObjectsShader = new CObjectsShader();
+	pObjectsShader->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	pObjectsShader->BuildObjects(pd3dDevice, m_pd3dGraphicsRootSignature, pd3dCommandList, m_pTerrain);
+	m_ppShaders[0] = pObjectsShader;
 
 	////////
 
@@ -704,3 +712,37 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	}
 }
 
+bool CScene::CheckPlayerByObjectBB(XMFLOAT3 xmf3Shift)
+{
+	CGameObject** m_ppObjects =	((CObjectsShader*)m_ppShaders[ShaderData::objects])->GetObjects();
+	int m_nObjects = ((CObjectsShader*)m_ppShaders[ShaderData::objects])->GetObjectsNum();
+
+	BoundingBox playerBB = m_pPlayer->GetBoundingBox();
+	for (int i = 0; i < m_nObjects; i++)
+	{
+		m_ppObjects[i]->UpdateCollision();
+		if (!m_ppObjects[i]->GetHaveBound()) continue;
+
+		BoundingBox BB = m_ppObjects[i]->GetBoundingBox();
+		if (CheckAABB(playerBB,BB,xmf3Shift)) return false;
+	}
+
+	return true;
+}
+
+bool CScene::CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift)
+{
+	XMFLOAT3 min1 = Vector3::Add(Vector3::Subtract(A.Center, A.Extents),xmf3Shift);
+	XMFLOAT3 max1 = Vector3::Add(Vector3::Add(A.Center, A.Extents), xmf3Shift);
+
+	XMFLOAT3 min2 = Vector3::Subtract(B.Center, B.Extents);
+	XMFLOAT3 max2 = Vector3::Add(B.Center, B.Extents);
+
+	BoundingBox aabb1;
+	BoundingBox::CreateFromPoints(aabb1,XMLoadFloat3(&min1),XMLoadFloat3(&max1));
+	BoundingBox aabb2;
+	BoundingBox::CreateFromPoints(aabb2, XMLoadFloat3(&min2), XMLoadFloat3(&max2));
+
+	if (aabb1.Contains(aabb2)) return true;
+	return false;
+}

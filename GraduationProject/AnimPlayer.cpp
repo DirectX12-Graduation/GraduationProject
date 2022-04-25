@@ -28,8 +28,8 @@ CAnimPlayer::CAnimPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 void CAnimPlayer::InitPlayerMatrics(void* pContext)
 {
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
-	SetPosition(XMFLOAT3(310.0f, pTerrain->GetHeight(310.0f, 595.0f), 595.0f));
-	SetScale(XMFLOAT3(0.2f, 0.2f, 0.2f));
+	SetPosition(XMFLOAT3(310.0f * 10, pTerrain->GetHeight(310.0f * 10, 595.0f * 10), 595.0f * 10));
+	SetScale(XMFLOAT3(1, 1, 1));
 	Rotate(0.0f, 0.0f, 90.0f);
 }
 
@@ -55,11 +55,11 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		SetFriction(250.0f);
 		//1인칭 카메라일 때 플레이어에 y-축 방향으로 중력이 작용한다.
 		SetGravity(XMFLOAT3(0.0f, -250.0f, 0.0f));
-		SetMaxVelocityXZ(300.0f);
+		SetMaxVelocityXZ(3000.0f);
 		SetMaxVelocityY(400.0f);
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, 0.0f));
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 100.0f, 0.0f));
 		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
 		break;
 	case SPACESHIP_CAMERA:
@@ -67,11 +67,11 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	case THIRD_PERSON_CAMERA:
 		SetFriction(250.0f);
 		SetGravity(XMFLOAT3(0.0f, -250.0f, 0.0f));
-		SetMaxVelocityXZ(300.0f);
+		SetMaxVelocityXZ(3000.0f);
 		SetMaxVelocityY(400.0f);
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 50.0f, -100.0f));
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 250.0f, -500.0f));
 		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
@@ -133,7 +133,7 @@ void CAnimPlayer::Update(float fTimeElapsed)
 
 void CAnimPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
 {
-	CPlayer::Move(dwDirection, fDistance, bUpdateVelocity);
+	CPlayer::SetMoveShift(dwDirection, fDistance);
 }
 
 bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)

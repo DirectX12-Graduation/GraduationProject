@@ -133,7 +133,7 @@ public:
 	CObjectsShader();
 	virtual ~CObjectsShader();
 
-	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
 	virtual void AnimateObjects(float fTimeElapsed, CCamera* pCamrea = NULL);
 	virtual void ReleaseObjects();
 
@@ -147,7 +147,7 @@ public:
 	virtual CGameObject** GetObjects() { return(m_ppObjects); }
 	virtual int GetObjectsNum() { return(m_nObjects); }
 
-	BoundingBox CalculateBoundingBox();
+	void CalculateBoundingBox();
 
 protected:
 	CGameObject** m_ppObjects = NULL;

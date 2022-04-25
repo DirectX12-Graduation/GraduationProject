@@ -854,34 +854,38 @@ void CGameObject::MakeCollider(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 
 void CGameObject::UpdateCollision()
 {
-	for (CCollision* col : collisions)
+	for (int i = 0; i < collisions.size(); ++i)
 	{
-		BOUNDING_STATE cur_state = col->GetBoundingState();
+		BOUNDING_STATE cur_state = collisions[i]->GetBoundingState();
+		BoundingBox BB;
 		switch (cur_state)
 		{
 		case BOUNDING_STATE::BODY:
-			m_xmBoundingBox = col->GetBoundingBox();
+			BB = collisions[i]->GetBoundingBox();
+			BB.Transform(m_xmBoundingBox, XMLoadFloat4x4(&collisions[i]->m_xmf4x4World));
 			break;
 		case BOUNDING_STATE::SPHERE:
-			m_xmBoundingSphere = col->GetBoundingSphere();
-			break;
-		case BOUNDING_STATE::HIERACY:
-			UpdateBoundingHierachy();
+			//collisions[i]->CalculateBoundingSphere();
+			//m_xmBoundingSphere = collisions[i]->GetBoundingSphere();
 			break;
 		}
+		m_bHaveBound = true;
 	}
+
 }
 
-void CGameObject::UpdateBoundingHierachy()
+void CGameObject::SetBoundingScales(float x, float y, float z)
 {
 	for (CCollision* col : collisions)
 	{
-		if (col->GetBoundingState() == BOUNDING_STATE::HIERACY)
-			m_xmBoundingBox = col->GetBoundingBox();
-	}
+		BOUNDING_STATE cur_state = col->GetBoundingState();
+		if (cur_state == BOUNDING_STATE::SPHERE) continue;
 
-	if (m_pSibling) m_pSibling->UpdateBoundingHierachy();
-	if (m_pChild) m_pChild->UpdateBoundingHierachy();
+		col->SetBBScale(x, y, z);
+
+	}
+	if (m_pSibling) m_pSibling->SetBoundingScales(x,y,z);
+	if (m_pChild) m_pChild->SetBoundingScales(x,y,z);
 }
 
 void CGameObject::LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, string filename)
@@ -902,6 +906,7 @@ void CGameObject::LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 			cols->ToggleDebug();
 
 			collisions.emplace_back(cols);
+			m_bHaveBound = true;
 		}
 		if (s.compare("<Box>:") == 0)
 		{
@@ -912,10 +917,11 @@ void CGameObject::LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 			XMStoreFloat3(&BB.Center, XMLoadFloat3(&center));
 			XMStoreFloat3(&BB.Extents, XMLoadFloat3(&extends));
 
-			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, BB);
+			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, 
+				BB, BOUNDING_STATE::BODY);
 			cols->SetFrameObject(pBoneObject);
-			cols->SetBoundingState(BOUNDING_STATE::BODY);
 			collisions.emplace_back(cols);
+			m_bHaveBound = true;
 		}
 	}
 }
@@ -947,8 +953,8 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 			CModelMesh* pMesh = new CModelMesh(pd3dDevice, pd3dCommandList);
 			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile);
 
-			pGameObject->m_xmBoundingBox = pMesh->m_xmBoundingBox;
-			pGameObject->MakeCollider(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+			//pGameObject->m_xmBoundingBox = pMesh->m_xmBoundingBox;
+			//pGameObject->MakeCollider(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 
 			pGameObject->SetMesh(pMesh);
 
@@ -1307,8 +1313,8 @@ CMovingCoverObject::~CMovingCoverObject()
 
 void CMovingCoverObject::SetPoints(XMFLOAT3 xmf3Center)
 {
-	m_xmf3Point1 = XMFLOAT3(xmf3Center.x, xmf3Center.y, xmf3Center.z - 20.0f);
-	m_xmf3Point2 = XMFLOAT3(xmf3Center.x, xmf3Center.y, xmf3Center.z + 20.0f);
+	m_xmf3Point1 = XMFLOAT3(xmf3Center.x, xmf3Center.y, xmf3Center.z - 200.0f);
+	m_xmf3Point2 = XMFLOAT3(xmf3Center.x, xmf3Center.y, xmf3Center.z + 200.0f);
 }
 
 void CMovingCoverObject::Animate(float fTimeElapsed, CCamera* pCamrea)

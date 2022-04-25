@@ -489,23 +489,29 @@ void CGameFramework::OnProcessingKeyboardMessage
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
+		case 'W':
+		case 'A':
+		case 'S':
+		case 'D':
+			m_pPlayer->SetVelocity(XMFLOAT3(0,0,0));
+			break;
 		case 'R':
 			m_pcbMappedFrameworkInfo->m_nRenderMode = 0x00;
 			m_pcbMappedFrameworkInfo->m_nBlurMode = 0x00;
 			break;
-		case 'D':
-			::gbTerrainTessellationWireframe = !::gbTerrainTessellationWireframe;
-			m_pcbMappedFrameworkInfo->m_nRenderMode |= DEBUG_TESSELLATION;
-			break;
+		//case 'D':
+		//	::gbTerrainTessellationWireframe = !::gbTerrainTessellationWireframe;
+		//	m_pcbMappedFrameworkInfo->m_nRenderMode |= DEBUG_TESSELLATION;
+		//	break;
 		case 'B':
 			m_pcbMappedFrameworkInfo->m_nBlurMode = DEBUG_BLURRING;
 			break;
 		case 'Q':
 			m_fSpeedVal += 10.0f;
 			break;
-		case 'W':
-			m_fSpeedVal -= 10.0f;
-			break;
+		//case 'W':
+		//	m_fSpeedVal -= 10.0f;
+		//	break;
 		case 'F':
 			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->ActivateCannon();
 			break;
@@ -590,10 +596,20 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) m_pPlayer->Move(dwDirection, 5.0f, true);
+
+			UpdatePlayerMove(dwDirection);
 		}
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+}
+
+void CGameFramework::UpdatePlayerMove(const DWORD& dwDirection)
+{
+	XMFLOAT3 xmf3Shift = m_pPlayer->SetMoveShift(dwDirection, 10.0f);
+	if (dwDirection && m_pScene->CheckPlayerByObjectBB(xmf3Shift))
+	{
+		m_pPlayer->Move(xmf3Shift, false);
+	}
 }
 
 void CGameFramework::AnimateObjects()
@@ -606,14 +622,9 @@ void CGameFramework::AnimateObjects()
 
 void CGameFramework::WaitForGpuComplete()
 {
-	// 원래 후치로 되어있었는데 전치로 변경함
-	// CPU 펜스의 값을 증가한다.
 	UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
-	// GPU가 펜스의 값을 설정하는 명령을 명령 큐에 추가한다. 	
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFenceValue);
 
-	/*펜스의 현재 값이 설정한 값보다 작으면
-	펜스의 현재 값이 설정한 값이 될 때까지 기다린다.*/
 	if (m_pd3dFence->GetCompletedValue() < nFenceValue)
 	{
 		hResult = m_pd3dFence->SetEventOnCompletion(nFenceValue, m_hFenceEvent);
@@ -713,10 +724,6 @@ void CGameFramework::FrameAdvance()
 	m_pdxgiSwapChain->Present(0, 0);
 #endif
 #endif
-
-	/*현재의 프레임 레이트를 문자열로 가져와서 주 윈도우의 타이틀로 출력한다. m_pszBuffer 문자열이
-	"LapProject ("으로 초기화되었으므로 (m_pszFrameRate+12)에서부터 프레임 레이트를 문자열로 출력
-	하여 “ FPS)” 문자열과 합친다.*/
 
 	MoveToNextFrame();
 

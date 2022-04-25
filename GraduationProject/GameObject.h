@@ -212,6 +212,7 @@ public:
 private:
 	BoundingBox	m_xmBoundingBox;
 	BoundingSphere m_xmBoundingSphere;
+	bool m_bHaveBound = false;
 
 public:
 	void SetMesh(CMesh* pMesh);
@@ -268,6 +269,7 @@ public:
 	CGameObject* FindFrame(const char* pstrFrameName);
 	void SetActive(char* pstrFrameName, bool bActive);
 	UINT GetMeshType(int n) { return((m_pMesh) ? m_pMesh->GetType() : 0x00); }
+	bool GetHaveBound() { return m_bHaveBound; }
 
 public:
 	CAnimationController* m_pSkinnedAnimationController = NULL;
@@ -291,8 +293,10 @@ public:
 	void SetImGuiCollider();
 	void SetImGuiColliderTrees();
 	BoundingSphere GetBoundingSphere() { return m_xmBoundingSphere; }
+	virtual BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
+	virtual BoundingSphere GetBoundingSphere() { return m_xmBoundingSphere; }
 	void UpdateCollision();
-	void UpdateBoundingHierachy();
+	void SetBoundingScales(float x, float y, float z);
 };
 
 class CRotatingObject : public CGameObject

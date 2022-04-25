@@ -1,0 +1,13 @@
+total: 59
+crystal: 11
+Barricade_01: 10
+Barricade_02: 10
+cannon: 4
+house_1: 4
+house_2: 3
+house_3: 6
+house_4: 5
+Fence: 2
+Well: 1
+Vegetables: 2
+floor_segment: 1
