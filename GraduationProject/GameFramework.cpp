@@ -606,10 +606,18 @@ void CGameFramework::ProcessInput()
 void CGameFramework::UpdatePlayerMove(const DWORD& dwDirection)
 {
 	XMFLOAT3 xmf3Shift = m_pPlayer->SetMoveShift(dwDirection, 10.0f);
-	if (dwDirection && m_pScene->CheckPlayerByObjectBB(xmf3Shift))
+	if (IsPlayerMove(dwDirection, xmf3Shift))
 	{
 		m_pPlayer->Move(xmf3Shift, false);
 	}
+}
+
+bool CGameFramework::IsPlayerMove(const DWORD& dwDirection, const DirectX::XMFLOAT3& xmf3Shift)
+{
+	if (!dwDirection) return false;
+	if (!m_pScene->CheckPlayerByObjectBB(xmf3Shift)) return false;
+	if (!m_pScene->CheckPlayerInScene(xmf3Shift)) return false;
+	return true;
 }
 
 void CGameFramework::AnimateObjects()

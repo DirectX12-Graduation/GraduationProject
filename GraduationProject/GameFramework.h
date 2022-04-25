@@ -141,6 +141,7 @@ public:
 	//프레임워크의 핵심(사용자 입력, 애니메이션, 렌더링)을 구성하는 함수이다.
 	void ProcessInput();
 	void UpdatePlayerMove(const DWORD& dwDirection);
+	bool IsPlayerMove(const DWORD& dwDirection, const DirectX::XMFLOAT3& xmf3Shift);
 	void AnimateObjects();
 	void FrameAdvance();
 
