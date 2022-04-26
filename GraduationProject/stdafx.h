@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <vector>
 #include <fstream>
+#include <array>
 using namespace std;
 
 #ifdef _DEBUG

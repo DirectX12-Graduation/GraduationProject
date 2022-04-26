@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Timer.h"
 #include "Shader.h"
+#include "Collision.h"
 
 struct LIGHT
 {
@@ -65,7 +66,7 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
 	bool CheckPlayerByObjectBB(XMFLOAT3 xmf3Shift);
-	bool CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift);
+	bool CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift, bool intersect = false);
 	bool CheckPlayerInScene(XMFLOAT3 XMF3Shift);
 
 	void ReleaseUploadBuffers();
@@ -85,6 +86,7 @@ public:
 	CHeightMapTerrain* GetTerrain() { return(m_pTerrain); }
 
 	void OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void SetObjectCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 public:
 	static void CreateCbvSrvUavDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews, int nUnorderedAccessViews);
@@ -143,6 +145,7 @@ protected:
 	ID3D12Resource* m_pd3dcbMaterials = NULL;
 	MATERIAL* m_pcbMappedMaterials = NULL;
 	vector<CCollision*> collisions;
+	vector<CCollisionManager*> collManagers;
 
 public:
 	static ID3D12DescriptorHeap* m_pd3dCbvSrvUavDescriptorHeap;

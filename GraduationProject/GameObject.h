@@ -187,6 +187,7 @@ public:
 
 public:
 	char m_pstrFrameName[64];
+	char m_pstrTag[64];
 
 	bool m_bActive = true;
 
@@ -224,6 +225,8 @@ public:
 	void SetScale(XMFLOAT3& xmf3Scale) { m_xmf3Scale = xmf3Scale; }
 
 	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
+	void SetTag(char* tagName);
+	string GetTag() { return string(m_pstrTag); }
 
 	virtual void BuildMaterials(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
 
@@ -292,8 +295,13 @@ public:
 	BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
 	virtual void SetImGuiCollider();
 	void SetImGuiColliderTrees();
+	virtual BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
 	virtual BoundingSphere GetBoundingSphere() { return m_xmBoundingSphere; }
+	bool IsBoundingBox(int i);
 	void UpdateCollision();
+	BoundingBox GetBoundingBoxPerIndex(int i);
+	BoundingSphere GetBoundingSpherePerIndex(int i);
+	void CalculateBoundPerIndex(int i);
 	void SetBoundingScales(float x, float y, float z);
 };
 

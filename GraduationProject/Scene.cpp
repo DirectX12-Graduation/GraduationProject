@@ -374,6 +374,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//////
 	
 	BuildCollisions(pd3dDevice, pd3dCommandList);
+	SetObjectCollision(pd3dDevice, pd3dCommandList);
 
 	////////
 
@@ -406,9 +407,25 @@ void CScene::BuildCollisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 			XMStoreFloat3(&BB.Center, XMLoadFloat3(&center));
 			XMStoreFloat3(&BB.Extents, XMLoadFloat3(&extends));
 
-			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, BB,BOUNDING_STATE::BODY);
+			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, BB);
 			collisions.emplace_back(cols);
 		}
+	}
+}
+
+void CScene::SetObjectCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CGameObject** m_ppObjects = ((CObjectsShader*)m_ppShaders[ShaderData::objects])->GetObjects();
+	int m_nObjects = ((CObjectsShader*)m_ppShaders[ShaderData::objects])->GetObjectsNum();
+
+	string root = "../Assets/Model/Bounding/";
+	string tail = ".txt";
+	for (int i = 0; i < m_nObjects; i++)
+	{
+		string tag = m_ppObjects[i]->GetTag();
+		string filename = "../Assets/Model/Bounding/" + tag + ".txt";
+		CCollisionManager* manager = new CCollisionManager(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, m_ppObjects[i], filename);
+		collManagers.emplace_back(manager);
 	}
 }
 
@@ -740,6 +757,9 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 
 	for (CCollision* col : collisions)
 		col->Render(pd3dCommandList, pCamera);
+
+	for (CCollisionManager* col : collManagers)
+		col->Render(pd3dCommandList, pCamera);
 }
 
 bool CScene::CheckPlayerByObjectBB(XMFLOAT3 xmf3Shift)
@@ -760,7 +780,7 @@ bool CScene::CheckPlayerByObjectBB(XMFLOAT3 xmf3Shift)
 	return true;
 }
 
-bool CScene::CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift)
+bool CScene::CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift, bool intersect)
 {
 	XMFLOAT3 min1 = Vector3::Add(Vector3::Subtract(A.Center, A.Extents),xmf3Shift);
 	XMFLOAT3 max1 = Vector3::Add(Vector3::Add(A.Center, A.Extents), xmf3Shift);
@@ -773,7 +793,14 @@ bool CScene::CheckAABB(BoundingBox A, BoundingBox B, XMFLOAT3 xmf3Shift)
 	BoundingBox aabb2;
 	BoundingBox::CreateFromPoints(aabb2, XMLoadFloat3(&min2), XMLoadFloat3(&max2));
 
-	if (aabb1.Contains(aabb2)) return true;
+	if (intersect)
+	{
+		if (aabb1.Intersects(aabb2)) return true;
+	}
+	else 
+	{
+		if (aabb1.Contains(aabb2)) return true;
+	}
 	return false;
 }
 
@@ -782,7 +809,7 @@ bool CScene::CheckPlayerInScene(XMFLOAT3 xmf3Shift)
 	BoundingBox playerBB = m_pPlayer->GetBoundingBox();
 	for (CCollision* col : collisions)
 	{
-		if (CheckAABB(playerBB, col->GetBoundingBox(), xmf3Shift)) return true;
+		if (CheckAABB(playerBB, col->GetBoundingBox(),xmf3Shift, true)) return true;
 	}
 
 	return false;
