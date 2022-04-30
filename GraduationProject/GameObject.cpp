@@ -1439,13 +1439,3 @@ void CCannonObject::FireCannonBall(XMFLOAT3 Origin, XMFLOAT3 Velocity)
 		m_pCannonball->SetActive(true);
 	}
 }
-
-
-
-// --- 이번주 내로 끝내야할거 ----
-//		몬스터 - 플레이어
-//			: 공격을 휘두를 경우에만 Attack 충돌검사
-//			: 특정 시간에만 충돌검사
-//		플레이어 상호작용
-//		플레이어 컨트롤
-//		플레이어 이동

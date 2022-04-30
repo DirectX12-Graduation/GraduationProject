@@ -292,7 +292,6 @@ public:
 	void MakeCollider(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	void SetIsRotate(bool bVal);
 	void LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, string filename);
-	BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
 	virtual void SetImGuiCollider();
 	void SetImGuiColliderTrees();
 	virtual BoundingBox GetBoundingBox() { return m_xmBoundingBox; }
