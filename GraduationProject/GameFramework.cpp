@@ -443,27 +443,11 @@ void CGameFramework::OnProcessingKeyboardMessage
 (HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+	m_pCamera = m_pPlayer->GetCamera();
 	if (m_pPlayer) m_pPlayer->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 
 	switch (nMessageID)
 	{
-	case WM_KEYDOWN:
-		switch(wParam)
-		{
-		case VK_LEFT:
-			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->RotateCannon(XMFLOAT3(0, 0, 1), -10.0f);
-			break;
-		case VK_RIGHT:
-			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->RotateCannon(XMFLOAT3(0, 0, 1), 10.0f);
-			break;
-		case VK_UP:
-			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->RotateCannon(XMFLOAT3(1, 0, 0), 10.0f);
-			break;
-		case VK_DOWN:
-			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->RotateCannon(XMFLOAT3(1, 0, 0), -10.0f);
-			break;
-		}
-		break;
 	case WM_KEYUP:
 		switch (wParam)
 		{
@@ -474,7 +458,6 @@ void CGameFramework::OnProcessingKeyboardMessage
 			break;
 			
 		case VK_CONTROL:
-			//m_pScene->FireBullet();
 			break;
 		case VK_F1:
 		case VK_F2:
@@ -488,12 +471,6 @@ void CGameFramework::OnProcessingKeyboardMessage
 			//“F9” 키가 눌려지면 윈도우 모드와 전체화면 모드의 전환을 처리한다.
 		case VK_F9:
 			ChangeSwapChainState();
-			break;
-		case 'W':
-		case 'A':
-		case 'S':
-		case 'D':
-			m_pPlayer->SetVelocity(XMFLOAT3(0,0,0));
 			break;
 		case 'R':
 			m_pcbMappedFrameworkInfo->m_nRenderMode = 0x00;
@@ -512,8 +489,6 @@ void CGameFramework::OnProcessingKeyboardMessage
 		//case 'W':
 		//	m_fSpeedVal -= 10.0f;
 		//	break;
-		case 'F':
-			((CCannonObjectsShader*)m_pScene->m_ppShaders[1])->ActivateCannon();
 			break;
 		default:
 			break;
@@ -544,7 +519,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 	case WM_MOUSEMOVE:
-		//OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
@@ -559,6 +534,10 @@ void CGameFramework::ProcessInput()
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+
+	bProcessedByScene = dynamic_cast<CAnimPlayer*>(m_pPlayer)->IsPlayerInteraction();
+
+
 	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
@@ -578,14 +557,14 @@ void CGameFramework::ProcessInput()
 
 		float cxDelta = 0.0f, cyDelta = 0.0f;
 		POINT ptCursorPos;
-		//if (GetCapture() == m_hWnd)
-		//{
-		//	SetCursor(NULL);
-		//	GetCursorPos(&ptCursorPos);
-		//	cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
-		//	cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
-		//	SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
-		//}
+		if (GetCapture() == m_hWnd)
+		{
+			SetCursor(NULL);
+			GetCursorPos(&ptCursorPos);
+			cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
+			cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
+			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+		}
 
 		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
@@ -605,11 +584,16 @@ void CGameFramework::ProcessInput()
 
 void CGameFramework::UpdatePlayerMove(const DWORD& dwDirection)
 {
-	XMFLOAT3 xmf3Shift = m_pPlayer->SetMoveShift(dwDirection, 10.0f);
+	XMFLOAT3 xmf3Shift = m_pPlayer->SetMoveShift(dwDirection, 20.0f);
 	if (IsPlayerMove(dwDirection, xmf3Shift))
 	{
 		m_pPlayer->Move(xmf3Shift, false);
 	}
+
+	if (dwDirection & DIR_LEFT) m_pPlayer->m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_left);
+	if (dwDirection & DIR_RIGHT) m_pPlayer->m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_right);
+	if (dwDirection & DIR_BACKWARD) m_pPlayer->m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_back);
+	if (dwDirection & DIR_FORWARD) m_pPlayer->m_pSkinnedAnimationController->SwitchAnimationState(track_name::run);
 }
 
 bool CGameFramework::IsPlayerMove(const DWORD& dwDirection, const DirectX::XMFLOAT3& xmf3Shift)

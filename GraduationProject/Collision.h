@@ -3,29 +3,8 @@
 #include "Mesh.h"
 #include "CollisionShader.h"
 #include "Camera.h"
-#include "Animation.h"
 
-enum BOUNDING_INFO
-{
-	SPHERE,
-	BOX,
-	LENGTH
-};
-
-class CCollisionManager
-{
-public:
-	CCollisionManager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, 
-		CGameObject* pGameObject, string& filename);
-	~CCollisionManager();
-
-	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-	void LoadFromFileBoundInfo(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pGameObject, string& filename);
-private:
-	BoundingBox m_xmBoundingBox;
-	BoundingSphere m_xmBoundingSphere;
-	array<CCollision*, static_cast<int>(BOUNDING_INFO::LENGTH)> collisions;
-};
+///////////////////////////////////////////////////////
 
 class CCollision : public CGameObject
 {
@@ -37,10 +16,14 @@ public:
 	void SetIsRotate(bool bVal) { m_bRotate = bVal; }
 	virtual void SetCollisionMaterial(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList);
 	void SetFrameObject(CGameObject* pObject) { if (FrameObject == nullptr) FrameObject = pObject; }
-	virtual void UpdateBoundings(XMFLOAT4X4 pxmf4x4World);
+	virtual void UpdateBoundTransform();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	void ToggleDebug() { m_bDebug = !m_bDebug; }
 	void SetBBScale(float x, float y, float z);
+	virtual void UpdateBound(BoundingBox& BB, BoundingSphere& BS);
+	bool GetDebug() {return m_bDebug; }
+	virtual BoundingBox GetBoundingBox() { return BoundingBox(); }
+	virtual BoundingSphere GetBoundingSphere() { return BoundingSphere(); }
 
 protected:
 	bool m_bDebug = false;
@@ -60,8 +43,10 @@ public:
 
 	void SetBBMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void SetBB(DirectX::BoundingBox& BB);
-	virtual void UpdateBoundings(XMFLOAT4X4 pxmf4x4World);
+	virtual void UpdateBoundTransform();
+	virtual void UpdateBound(BoundingBox& BB, BoundingSphere& BS);
 	virtual BoundingBox GetBoundingBox() { return m_xmCollBoundingBox; }
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 private:
 	BoundingBox m_xmCollBoundingBox;
 };
@@ -70,13 +55,16 @@ private:
 class CSphereCollision : public CCollision
 {
 public:
-	CSphereCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, float fradius);
+	CSphereCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, BoundingSphere BS);
 	~CSphereCollision();
 	
-	void UpdateBoundings(XMFLOAT4X4 pxmf4x4World);
 	virtual void SetCollisionMaterial(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList);
-	void SetBoundingSphere(DirectX::XMFLOAT3& center, float fradius);
+	void SetBoundingSphere(BoundingSphere& BS);
+
+	virtual void UpdateBound(BoundingBox& BB, BoundingSphere& BS);
+	virtual void UpdateBoundTransform();
 	virtual BoundingSphere GetBoundingSphere() { return m_xmCollBoundingSphere; }
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 private:
 	BoundingSphere m_xmCollBoundingSphere;
 };

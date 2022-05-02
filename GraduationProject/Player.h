@@ -9,6 +9,7 @@
 #include "GameObject.h"
 #include "Camera.h"
 #include "Animation.h"
+#include "CollisionManager.h"
 
 class CScene;
 
@@ -50,9 +51,13 @@ protected:
 	
 	//플레이어에 현재 설정된 카메라이다. 
 	CCamera *m_pCamera = NULL;
+
+	CCollisionManager* m_CollManager = nullptr;
 public:
 	CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL, int nMeshes = 1);
 	virtual ~CPlayer();
+
+	CCollisionManager* GetCollManager(){return m_CollManager;}
 
 	XMFLOAT3 GetPosition() { return(m_xmf3Position); }
 	XMFLOAT3 GetLookVector() { return(m_xmf3Look); }
@@ -73,8 +78,7 @@ public:
 	재 플레이어의 위치에서 xmf3Position 방향으로의 벡터가 된다. 현재 플레이어의 위치에서 이 벡터 만큼 이동한다.*/
 	void SetPosition(XMFLOAT3& xmf3Position) {
 		Move(XMFLOAT3(xmf3Position.x -
-			m_xmf3Position.x, xmf3Position.y - m_xmf3Position.y, xmf3Position.z - m_xmf3Position.z),
-			false);
+			m_xmf3Position.x, xmf3Position.y - m_xmf3Position.y, xmf3Position.z - m_xmf3Position.z),false);
 	}
 
 	virtual bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
@@ -123,4 +127,5 @@ public:
 	//플레이어의 카메라가 3인칭 카메라일 때 플레이어(메쉬)를 렌더링한다. 
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
 	bool IsPlayerFast();
+	virtual bool SetInteraction(XMFLOAT3& center, XMFLOAT4X4& world) { return false; };
 };

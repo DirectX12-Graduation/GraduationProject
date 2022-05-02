@@ -509,6 +509,7 @@ void CGameObject::SetPosition(XMFLOAT3 xmf3Position)
 
 void CGameObject::SetScale(float x, float y, float z)
 {
+	m_xmf3Scale = XMFLOAT3(x, y, z);
 	XMMATRIX mtxScale = XMMatrixScaling(x, y, z);
 	m_xmf4x4ToParent = Matrix4x4::Multiply(mtxScale, m_xmf4x4ToParent);
 
@@ -759,23 +760,11 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 		}
 	}
 
-	if (!collisions.empty())
-	{
-		RenderCollision(pd3dCommandList, pCamera);
-	}
+	if (m_CollisionManager)
+		m_CollisionManager->Render(pd3dCommandList, pCamera);
 
 	if (m_pSibling) m_pSibling->Render(pd3dCommandList, pCamera);
 	if (m_pChild) m_pChild->Render(pd3dCommandList, pCamera);
-}
-
-void CGameObject::RenderCollision(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
-{
-	for (CCollision* col : collisions)
-	{
-		col->UpdateBoundings(m_xmf4x4World);
-		col->Render(pd3dCommandList, pCamera);
-	}
-	UpdateCollision();
 }
 
 UINT ReadUnsignedIntegerFromFile(FILE* pInFile)
@@ -810,15 +799,6 @@ int ReadStringFromFile(FILE* pInFile, char* pstrToken)
 	return(nStrLength);
 }
 
-void CGameObject::SetIsRotate(bool bVal)
-{
-	for (CCollision* col : collisions)
-		col->SetIsRotate(bVal);
-
-	if (m_pSibling) m_pSibling->SetIsRotate(bVal);
-	if (m_pChild) m_pChild->SetIsRotate(bVal);
-}
-
 void CGameObject::SetImGuiCollider()
 {
 	//ImGui::Begin("hierarchy");
@@ -836,75 +816,11 @@ void CGameObject::SetImGuiColliderTrees()
 
 	if (ImGui::TreeNode(val.c_str()))
 	{
-		for (CCollision* col : collisions)
-		{
-			XMFLOAT3 pos = col->GetPosition();
-			static float f0 = pos.x, f1 = pos.y, f2 = pos.z;
-			ImGui::SliderFloat("X", &f0, 0.0f, 5.0f); //ImGui::SameLine();
-			ImGui::SliderFloat("Y", &f1, 0.0f, 5.0f); //ImGui::SameLine();
-			ImGui::SliderFloat("Z", &f2, 0.0f, 5.0f);
-			SetPosition(f0, f1, f2);
-		}
-
 		if (m_pSibling) m_pSibling->SetImGuiColliderTrees();
 		if (m_pChild) m_pChild->SetImGuiColliderTrees();
 
 		ImGui::TreePop();
 	}
-}
-
-void CGameObject::MakeCollider(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-{
-	CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, m_xmBoundingBox);
-	collisions.emplace_back(cols);
-}
-
-void CGameObject::UpdateCollision()
-{
-	for (int i = 0; i < collisions.size(); ++i)
-	{
-		//CalculateBoundPerIndex(i);
-		//m_bHaveBound = true;
-	}
-
-}
-
-bool CGameObject::IsBoundingBox(int i)
-{
-	//return (collisions[i]->GetBoundingState() != BOUNDING_STATE::SPHERE);
-	return false;
-}
-
-BoundingBox CGameObject::GetBoundingBoxPerIndex(int i)
-{
-	//CalculateBoundPerIndex(i);
-	return m_xmBoundingBox;
-}
-
-BoundingSphere CGameObject::GetBoundingSpherePerIndex(int i)
-{
-	//CalculateBoundPerIndex(i);
-	return m_xmBoundingSphere;
-}
-
-void CGameObject::CalculateBoundPerIndex(int i)
-{
-	//BOUNDING_STATE cur_state = collisions[i]->GetBoundingState();
-	//BoundingBox BB;
-	//BoundingSphere BS;
-
-	//switch (cur_state)
-	//{
-	//case BOUNDING_STATE::HIERACY:
-	//case BOUNDING_STATE::BODY:
-	//	BB = collisions[i]->GetBoundingBox();
-	//	BB.Transform(m_xmBoundingBox, XMLoadFloat4x4(&collisions[i]->m_xmf4x4World));
-	//	break;
-	//case BOUNDING_STATE::SPHERE:
-	//	BS = collisions[i]->GetBoundingSphere();
-	//	BS.Transform(m_xmBoundingSphere, XMLoadFloat4x4(&collisions[i]->m_xmf4x4World));
-	//	break;
-	//}
 }
 
 CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, CShader* pShader, int* pnSkinnedMeshes)
@@ -1182,11 +1098,13 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CTexture* pTerrainBaseTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0,1,0,0);
-	pTerrainBaseTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Terrain/Base_Texture.dds",0);
+	CTexture* pTerrainTexture = new CTexture(5, RESOURCE_TEXTURE2D, 0,1,0,0);
 
-	CTexture* pTerrainDetailTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0,1,0,0);
-	pTerrainDetailTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Terrain/Detail_Texture_7.dds",0);
+	pTerrainTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Terrain/Base_Texture.dds", 0);
+	pTerrainTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Texture/ground_base.dds", 1);
+	pTerrainTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Texture/ground_dry.dds", 2);
+	pTerrainTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Texture/ground_dirt.dds", 3);
+	pTerrainTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Texture/G_dry_B_dirt.dds", 4);
 
 	DXGI_FORMAT pdxgiRtvFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
 
@@ -1194,12 +1112,10 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	pTerrainShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
 	pTerrainShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CScene::CreateShaderResourceViews(pd3dDevice, pTerrainBaseTexture, Signature::Graphics::terrain_base, false);
-	CScene::CreateShaderResourceViews(pd3dDevice, pTerrainDetailTexture, Signature::Graphics::terrain_detail, false);
+	CScene::CreateShaderResourceViews(pd3dDevice, pTerrainTexture, Signature::Graphics::terrain_textures, false);
 
-	CMaterial* pTerrainMaterial = new CMaterial(2);
-	pTerrainMaterial->SetTexture(pTerrainBaseTexture, 0);
-	pTerrainMaterial->SetTexture(pTerrainDetailTexture, 1);
+	CMaterial* pTerrainMaterial = new CMaterial(1);
+	pTerrainMaterial->SetTexture(pTerrainTexture, 0);
 	pTerrainMaterial->SetShader(pTerrainShader);
 
 	SetMaterial(0, pTerrainMaterial);
@@ -1366,7 +1282,7 @@ void CCannonballObject::Animate(float fTimeElapsed, CCamera* pCamera)
 {
 	if (m_bIsFired) {
 		XMFLOAT3 xmf3Gravity = XMFLOAT3(0.0f, -10.0f, 0.0f);
-		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(xmf3Gravity, fTimeElapsed * 0.5f, false));
+		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(xmf3Gravity, fTimeElapsed * 0.1f, false));
 
 		SetPosition(Vector3::Add(GetPosition(), m_xmf3Velocity));
 	}
@@ -1405,9 +1321,10 @@ CCannonObject::~CCannonObject()
 
 void CCannonObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	XMFLOAT4X4 xmf4x4TempWolrd;
-	xmf4x4TempWolrd = m_xmf4x4ToParent = m_xmf4x4World;
-	m_xmf4x4ToParent = Matrix4x4::Multiply(XMMatrixRotationY(110.0f), m_xmf4x4ToParent);
+	//XMFLOAT4X4 xmf4x4TempWolrd;
+	//xmf4x4TempWolrd = m_xmf4x4ToParent = m_xmf4x4World;
+
+	//m_xmf4x4ToParent = Matrix4x4::Multiply(XMMatrixRotationY(110.0f), m_xmf4x4ToParent);
 	UpdateTransform(NULL);
 
 	CGameObject::Render(pd3dCommandList, pCamera);
@@ -1415,7 +1332,7 @@ void CCannonObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* 
 		m_pCannonball->Render(pd3dCommandList, pCamera);
 	}
 
-	m_xmf4x4World = m_xmf4x4ToParent = xmf4x4TempWolrd;
+	//m_xmf4x4World = m_xmf4x4ToParent = xmf4x4TempWolrd;
 }
 
 void CCannonObject::Animate(float fTimeElapsed, CCamera* pCamera)
@@ -1438,4 +1355,80 @@ void CCannonObject::FireCannonBall(XMFLOAT3 Origin, XMFLOAT3 Velocity)
 		m_pCannonball->SetFire(true);
 		m_pCannonball->SetActive(true);
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CMonsterObject::CMonsterObject()
+{
+}
+
+CMonsterObject::~CMonsterObject()
+{
+}
+
+void CMonsterObject::FindTarget()
+{
+}
+
+void CMonsterObject::ChaseTarget()
+{
+}
+
+void CMonsterObject::AttackTarget()
+{
+
+	int curNum = m_pSkinnedAnimationController->GetCurrentTrackNum();
+	if (curNum == track_name::death1 || curNum == track_name::death2) return;
+
+	int randomNum = rand() % 2;
+	int trackNum = randomNum ? track_name::attack1 : track_name::attack2;
+
+	if (curNum == track_name::idle1 || curNum == track_name::idle2 || curNum == track_name::walk) {
+		m_pSkinnedAnimationController->SwitchAnimationState(trackNum);
+		m_pSkinnedAnimationController->SetAttackEnable(true);
+	}
+}
+
+void CMonsterObject::MonsterDead()
+{
+	int curNum = m_pSkinnedAnimationController->GetCurrentTrackNum();
+
+	if (curNum == track_name::death1 || curNum == track_name::death2) return;
+
+	m_pSkinnedAnimationController->SwitchAnimationState(track_name::death2);
+	m_pSkinnedAnimationController->SetAttackEnable(false);
+}
+
+void CMonsterObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	UpdateTransform(NULL);
+
+	CGameObject::Render(pd3dCommandList, pCamera);
+}
+
+void CMonsterObject::Animate(float fTimeElapsed, CCamera* pCamera)
+{
+	FindTarget();
+	ChaseTarget();
+
+	CGameObject::Animate(fTimeElapsed, pCamera);
+}
+
+bool CMonsterObject::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+{
+	switch (nMessageID)
+	{
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case 'Y':
+			int trackNum = m_pSkinnedAnimationController->GetCurrentTrackNum();
+			trackNum++;
+			if (trackNum == track_name::length) trackNum = 0;
+			m_pSkinnedAnimationController->SwitchAnimationState(trackNum);
+			break;
+		}
+	}
+	return(false);
 }

@@ -4,59 +4,6 @@
 #include "Shader.h"
 #include "Scene.h"
 
-CCollisionManager::CCollisionManager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,
-	CGameObject* pGameObject, string& filename)
-{
-	for (int i = 0; i < collisions.size(); ++i)
-		collisions[i] = new CCollision();
-	LoadFromFileBoundInfo(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, filename);
-}
-
-CCollisionManager::~CCollisionManager()
-{
-}
-
-void CCollisionManager::LoadFromFileBoundInfo(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,CGameObject* pGameObject, string& filename)
-{
-	ifstream boundingInfo(filename);
-	string s, frame;
-	XMFLOAT3 center, extends;
-	float radius;
-
-	while (boundingInfo >> s >> frame)
-	{
-		if (s.compare("<Sphere>:") == 0)
-		{
-			boundingInfo >> radius;
-			CGameObject* pBoneObject = pGameObject->FindFrame(frame.c_str());
-			CCollision* cols = new CSphereCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, radius);
-			cols->SetFrameObject(pBoneObject);
-			collisions[BOUNDING_INFO::SPHERE] = cols;
-		}
-		if (s.compare("<Box>:") == 0)
-		{
-			boundingInfo >> center.x >> center.y >> center.z;
-			boundingInfo >> extends.x >> extends.y >> extends.z;
-			CGameObject* pBoneObject = pGameObject->FindFrame(frame.c_str());
-			BoundingBox BB;
-			XMStoreFloat3(&BB.Center, XMLoadFloat3(&center));
-			XMStoreFloat3(&BB.Extents, XMLoadFloat3(&extends));
-
-			CCollision* cols = new CBBCollision(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, BB);
-			cols->SetFrameObject(pBoneObject);
-			collisions[BOUNDING_INFO::BOX] = cols;
-		}
-	}
-}
-
-void CCollisionManager::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
-{
-	for (CCollision* col : collisions)
-	{
-		col->Render(pd3dCommandList, pCamera);
-	}
-}
-
 /////////////////////////////
 CCollision::CCollision() : CGameObject(1)
 {
@@ -79,14 +26,12 @@ void CCollision::SetCollisionMaterial(ID3D12Device* pd3dDevice, ID3D12RootSignat
 	SetMaterial(0, pMaterial);
 }
 
-void CCollision::UpdateBoundings(XMFLOAT4X4 xmf4x4World)
+void CCollision::UpdateBoundTransform()
 {
 	if (FrameObject)
 	{
 		UpdateTransform(&FrameObject->m_xmf4x4World);
 	}
-
-	if (m_bRotate) Rotate(-90.0f, 0.0f, 0.0f);
 }
 
 void CCollision::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -99,6 +44,10 @@ void CCollision::SetBBScale(float x, float y, float z)
 	m_xmf3Scale.x = x;
 	m_xmf3Scale.y = y;
 	m_xmf3Scale.z = z;
+}
+
+void CCollision::UpdateBound(BoundingBox& BB, BoundingSphere& BS)
+{
 }
 
 ////////////////////////////////
@@ -132,29 +81,48 @@ void CBBCollision::SetBB(DirectX::BoundingBox& BB)
 	XMStoreFloat3(&m_xmCollBoundingBox.Extents, XMLoadFloat3(&BB.Extents));
 }
 
-void CBBCollision::UpdateBoundings(XMFLOAT4X4 xmf4x4World)
+void CBBCollision::UpdateBoundTransform()
 {
-	CCollision::UpdateBoundings(xmf4x4World);
+	CCollision::UpdateBoundTransform();
+}
+
+void CBBCollision::UpdateBound(BoundingBox& BB, BoundingSphere& BS)
+{
+	m_xmCollBoundingBox.Transform(BB, XMLoadFloat4x4(&m_xmf4x4World));
+}
+
+void CBBCollision::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+//#define _SHOW_DEBUG_BOX
+#ifdef _SHOW_DEBUG_BOX
+	if (m_bDebug) CGameObject::Render(pd3dCommandList, pCamera);
+#endif
 }
 
 ////////////////////////////////
 
-CSphereCollision::CSphereCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, float fradius)
+CSphereCollision::CSphereCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, BoundingSphere BS)
 {
-	XMFLOAT3 center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	SetBoundingSphere(center, fradius);
+	SetBoundingSphere(BS);
 	
-	CSphereMeshIlluminated* DebugSphere = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, fradius);
+	CSphereMeshIlluminated* DebugSphere = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, BS.Radius);
 	SetMesh(DebugSphere);
 
 	SetCollisionMaterial(pd3dDevice, pd3dGraphicsRootSignature, pd3dCommandList);
 	m_bDebug = true;
 }
 
-void CSphereCollision::SetBoundingSphere(DirectX::XMFLOAT3& center, float fradius)
+void CSphereCollision::SetBoundingSphere(BoundingSphere& BS)
 {
-	XMStoreFloat3(&m_xmCollBoundingSphere.Center, XMLoadFloat3(&center));
-	m_xmCollBoundingSphere.Radius = fradius;
+	XMStoreFloat3(&m_xmCollBoundingSphere.Center, XMLoadFloat3(&BS.Center));
+	m_xmCollBoundingSphere.Radius = BS.Radius;
+	SetPosition(m_xmCollBoundingSphere.Center);
+	UpdateTransform(nullptr);
+}
+
+void CSphereCollision::UpdateBound(BoundingBox& BB, BoundingSphere& BS)
+{
+	m_xmCollBoundingSphere.Transform(BS, XMLoadFloat4x4(&m_xmf4x4World));
 }
 
 CSphereCollision::~CSphereCollision()
@@ -173,8 +141,15 @@ void CSphereCollision::SetCollisionMaterial(ID3D12Device* pd3dDevice, ID3D12Root
 	SetMaterial(0, pMaterial);
 }
 
-void CSphereCollision::UpdateBoundings(XMFLOAT4X4 xmf4x4World)
+void CSphereCollision::UpdateBoundTransform()
 {
-	CCollision::UpdateBoundings(xmf4x4World);
+	CCollision::UpdateBoundTransform();
 }
 
+void CSphereCollision::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+//#define _SHOW_DEBUG_SPHERE
+#ifdef _SHOW_DEBUG_SPHERE
+	if (m_bDebug) CGameObject::Render(pd3dCommandList, pCamera);
+#endif
+}

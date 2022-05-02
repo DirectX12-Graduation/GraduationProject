@@ -1,4 +1,4 @@
-total: 59
+total: 81
 crystal: 11
 Barricade_01: 10
 Barricade_02: 10
@@ -11,3 +11,5 @@ Fence: 2
 Well: 1
 Vegetables: 2
 floor_segment: 1
+Zombie_1: 11
+Zombie_2: 11

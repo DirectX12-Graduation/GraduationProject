@@ -278,7 +278,8 @@ void CAnimationController::SetAnimationSetsType(int nAnimationSet, int nType)
 {
 	if (m_pAnimationSets == nullptr) return;
 
-	m_pAnimationSets->m_ppAnimationSets[nAnimationSet]->SetType(nType);
+	int index = m_pAnimationTracks[nAnimationSet].GetAnimationSet();
+	m_pAnimationSets->m_ppAnimationSets[index]->SetType(nType);
 }
 
 
@@ -368,9 +369,9 @@ void CAnimationController::AdvanceTime(float fTimeElapsed, CGameObject* pRootGam
 				CAnimationSet* pAnimationSet = m_pAnimationSets->m_ppAnimationSets[m_pAnimationTracks[i].m_nAnimationSet];
 				if (pAnimationSet->IsOnceLoopEnd())
 				{
-					SetTrackEnable(i, false);
-					SetTrackEnable(0, true);
+					SwitchAnimationState(m_idleNum);
 					pAnimationSet->m_bLoopEnd = false;
+					isAttack = false;
 				}
 			}
 		}

@@ -566,15 +566,6 @@ CObjectsShader::~CObjectsShader()
 {
 }
 
-void CObjectsShader::CalculateBoundingBox()
-{
-	for (int i = 0; i < m_nObjects; i++) {
-		//m_ppObjects[i]->UpdateCollisionTransform(m_ppObjects[i]->m_xmf4x4World);
-		//m_ppObjects[i]->UpdateCollision();
-		//m_ppObjects[i]->CalculateBoundingBox();
-	}
-}
-
 void CObjectsShader::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 }
@@ -598,286 +589,6 @@ void CObjectsShader::ReleaseShaderVariables()
 void CObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext)
 {
 
-	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
-
-	float fTerrainWidth = pTerrain->GetWidth();
-	float fTerrainLength = pTerrain->GetLength();
-	XMFLOAT3 xmf3TerrainScale = pTerrain->GetScale();
-
-
-	ifstream metaInfo("../Assets/Image/Terrain/ObjectsMetaInfo.txt");
-	ifstream objectsInfo("../Assets/Image/Terrain/ObjectsInfo.txt");
-
-	string s;
-	int n;
-	while (metaInfo >> s >> n) {
-		if (s.compare("cannon:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("Barricade_01:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("Barricade_02:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("house_1:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("house_2:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("house_3:") == 0) {
-			m_nObjects += n;
-		}
-		if (s.compare("house_4:") == 0) {
-			m_nObjects += n;
-		}
-	}
-
-	m_ppObjects = new CGameObject * [m_nObjects];
-	int i = 0;
-
-	// cannon
-	CLoadedModelInfo* pCannonModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/cannon.bin", NULL);
-	CTexture* pCannonTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pCannonTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/cannon_diffuse.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pCannonTexture, Signature::Graphics::model_diffuse, true);
-	
-	// cannonball
-	CCannonballObject* pCannonballObject = new CCannonballObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
-	pCannonballObject->SetUpdatedContext(pTerrain);
-
-	// barricade
-	CLoadedModelInfo* pCover1Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/Barricade_01.bin", NULL);
-	CLoadedModelInfo* pCover2Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/Barricade_02.bin", NULL);
-	CTexture* pCoverTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pCoverTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/Wooden_Barricades_AlbedoTransparency.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pCoverTexture, Signature::Graphics::model_diffuse, true);
-
-	// house_1
-	CLoadedModelInfo* pHouse1Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_1.bin", NULL);
-	CTexture* pHouse1Texture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pHouse1Texture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/house_1_Diffuse.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pHouse1Texture, Signature::Graphics::model_diffuse, true);
-	// house_2
-	CLoadedModelInfo* pHouse2Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_2.bin", NULL);
-	CTexture* pHouse2Texture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pHouse2Texture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/house_2_Diffuse.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pHouse2Texture, Signature::Graphics::model_diffuse, true);
-	// house_3
-	CLoadedModelInfo* pHouse3Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_3.bin", NULL);
-	CTexture* pHouse3Texture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pHouse3Texture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/house_3_Diffuse.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pHouse3Texture, Signature::Graphics::model_diffuse, true);
-	// house_4
-	CLoadedModelInfo* pHouse4Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_4.bin", NULL);
-	CTexture* pHouse4Texture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
-	pHouse4Texture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Model/Texture/house_4_Diffuse.dds", 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pHouse4Texture, Signature::Graphics::model_diffuse, true);
-	float houseOffsetX = 30.0f;
-	float houseOffsetX_ = 1500.0f;
-	float houseOffsetZ = 20.0f;
-	float houseOffsetZ_ = 18000.0f;
-
-	// 
-	string line;
-	smatch match;
-	regex reName(R"(name: (\w+))");
-	regex rePosition(R"(position: \(([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*)\))");
-	regex reRotation(R"(rotation: \(([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*)\))");
-	regex reScale(R"(scale: \(([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*), ([+-]?\d*[.]?\d*)\))");
-	while (getline(objectsInfo, line)) {
-		regex_match(line, match, reName);
-		string name = match[1].str();
-
-		getline(objectsInfo, line);
-		regex_match(line, match, rePosition);
-		float px = stof(match[1].str());
-		float py = stof(match[2].str());
-		float pz = stof(match[3].str());
-
-		getline(objectsInfo, line);
-		regex_match(line, match, reRotation);
-		float rx = stof(match[1].str());
-		float ry = stof(match[2].str());
-		float rz = stof(match[3].str());
-		float rw = stof(match[4].str());
-
-		getline(objectsInfo, line);
-		regex_match(line, match, reScale);
-		float sx = stof(match[1].str());
-		float sy = stof(match[2].str());
-		float sz = stof(match[3].str());
-
-		if (name.compare("cannon") == 0) {
-			CCannonObject* pObject = NULL;
-
-			pObject = new CCannonObject;
-			pObject->SetChild(pCannonModel->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pCannonTexture;
-
-			pObject->SetCannonball(pCannonballObject);
-
-			float transX = px * (xmf3TerrainScale.x + 30.0f);
-			float transZ = pz * (xmf3TerrainScale.z + 30.0f) + 20000.0f;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 80.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->Rotate(90.0f, 0.0f, 0.0f);
-			pObject->Rotate(0.0f, 180.0f, 0.0f);
-			pObject->SetIsRotate(true);
-			pObject->SetTag("cannon");
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("Barricade_01") == 0) {
-			CCoverObject* pObject = NULL;
-
-			pObject = new CCoverObject;
-			pObject->SetChild(pCover1Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pCoverTexture;
-			
-			float transX = px * (xmf3TerrainScale.x + 30.0f);
-			float transZ = pz * (xmf3TerrainScale.z + 30.0f) + 20000.0f;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 20.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->SetTag("Barricade_01");
-
-			//pObject->SetPoints(pObject->GetPosition());
-			//pObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, 1.0f));
-			//pObject->SetMovingSpeed(200.0f);
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("Barricade_02") == 0) {
-			CCoverObject* pObject = NULL;
-
-			pObject = new CCoverObject;
-			pObject->SetChild(pCover2Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pCoverTexture;
-			
-			float transX = px * (xmf3TerrainScale.x + 30.0f);
-			float transZ = pz * (xmf3TerrainScale.z + 30.0f) + 20000.0f;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 20.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->SetTag("Barricade_02");
-
-			//pObject->SetPoints(pObject->GetPosition());
-			//pObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, 1.0f));
-			//pObject->SetMovingSpeed(200.0f);
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("house_1") == 0) {
-			CGameObject* pObject = NULL;
-
-			pObject = new CGameObject;
-			pObject->SetChild(pHouse1Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pHouse1Texture;
-
-			float transX = px * (xmf3TerrainScale.x + houseOffsetX) + houseOffsetX_;;
-			float transZ = pz * (xmf3TerrainScale.z + houseOffsetZ) + houseOffsetZ_;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 60.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->Rotate(90.0f, 0.0f, 0.0f);
-			pObject->SetIsRotate(true);
-			pObject->SetTag("house_1");
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("house_2") == 0) {
-			CGameObject* pObject = NULL;
-
-			pObject = new CGameObject;
-			pObject->SetChild(pHouse2Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pHouse2Texture;
-
-			float transX = px * (xmf3TerrainScale.x + houseOffsetX) + houseOffsetX_;
-			float transZ = pz * (xmf3TerrainScale.z + houseOffsetZ) + houseOffsetZ_;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 66.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->Rotate(90.0f, 0.0f, 0.0f);
-			pObject->SetIsRotate(true);
-			pObject->SetTag("house_2");
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("house_3") == 0) {
-			CGameObject* pObject = NULL;
-
-			pObject = new CGameObject;
-			pObject->SetChild(pHouse3Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pHouse3Texture;
-
-			float transX = px * (xmf3TerrainScale.x + houseOffsetX) + houseOffsetX_;;
-			float transZ = pz * (xmf3TerrainScale.z + houseOffsetZ) + houseOffsetZ_;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 90.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->Rotate(90.0f, 0.0f, 0.0f);
-			pObject->SetIsRotate(true);
-			pObject->SetTag("house_3");
-
-			m_ppObjects[i++] = pObject;
-		}
-		else if (name.compare("house_4") == 0) {
-			CGameObject* pObject = NULL;
-
-			pObject = new CGameObject;
-			pObject->SetChild(pHouse4Model->m_pModelRootObject, true);
-
-			pObject->m_pTexture = pHouse4Texture;
-
-			float transX = px * (xmf3TerrainScale.x + houseOffsetX) + houseOffsetX_;;
-			float transZ = pz * (xmf3TerrainScale.z + houseOffsetZ) + houseOffsetZ_;
-			float terrainY = pTerrain->GetHeight(transX, transZ);
-
-			XMFLOAT3 position = XMFLOAT3(transX, terrainY + 60.0f * sy, transZ);
-			pObject->SetPosition(position);
-			pObject->SetScale(sx, sy, sz);
-			XMFLOAT4 xmf4Rotation(rx, ry, rz, rw);
-			pObject->Rotate(&xmf4Rotation);
-			pObject->Rotate(90.0f, 0.0f, 0.0f);
-			pObject->SetIsRotate(true);
-			pObject->SetTag("house_4");
-
-			m_ppObjects[i++] = pObject;
-		}
-	}
 }
 
 void CObjectsShader::ReleaseObjects()
@@ -1132,6 +843,7 @@ void CCannonObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSign
 
 	CCannonballObject* pCannonballObject = new CCannonballObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 	pCannonballObject->SetUpdatedContext(pTerrain);
+	pCannonballObject->SetScale(0.5, 0.5, 0.5);
 
 	//
 	CCannonObject* pCannonObject = NULL;
@@ -1144,17 +856,14 @@ void CCannonObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSign
 	CScene::CreateShaderResourceViews(pd3dDevice, pModelTexture, Signature::Graphics::model_diffuse, true);
 	pCannonObject->m_pTexture = pModelTexture;
 	//pCannonObject->SetModelTexture(pModelTexture);
-	CGameObject* pCannonL = pCannonObject->FindFrame("Cube_001");
-	if (pCannonL) pCannonL->m_xmf4x4ToParent = Matrix4x4::Multiply(XMMatrixRotationX(120.0f), pCannonL->m_xmf4x4ToParent);
-	pCannonObject->SetIsRotate(true);
 
 #ifndef _WITH_BATCH_MATERIAL
 #endif
 	float xPosition = fTerrainWidth * 0.5f;
 	float zPosition = fTerrainLength * 0.5f - 10.0f;
 	float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-	pCannonObject->SetPosition(xPosition, fHeight + 80.0f, zPosition);
-
+	pCannonObject->SetPosition(xPosition, fHeight + 80.0f * 0.5f, zPosition);
+	pCannonObject->SetScale(0.5, 0.5, 0.5);
 	pCannonObject->SetCannonball(pCannonballObject);
 
 	m_ppObjects[0] = pCannonObject;
@@ -1186,6 +895,8 @@ void CCannonObjectsShader::ActivateCannon()
 
 	CGameObject* pBarrel = ((CCannonObject*)m_ppObjects[0])->m_pChild->FindFrame("Cube_001");
 	XMFLOAT3 origin = pBarrel->GetPosition();
+	XMFLOAT3 offset = Vector3::ScalarProduct(pBarrel->GetUp(), 100.0f * m_ppObjects[0]->m_xmf3Scale.y);
+	origin = Vector3::Add(origin, offset);
 	XMFLOAT3 velocity = Vector3::ScalarProduct(pBarrel->GetUp(), 3.0f);
 
 	((CCannonObject*)m_ppObjects[0])->FireCannonBall(origin, velocity);
@@ -1647,52 +1358,3 @@ D3D12_SHADER_BYTECODE CSkinnedAnimationWireFrameShader::CreatePixelShader(ID3DBl
 	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSSkinnedAnimation", "ps_5_1", &m_pd3dPixelShaderBlob));
 	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSSkinnedAnimationWireFrame", "ps_5_1", &m_pd3dPixelShaderBlob));
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-CSkinnedAnimationObjectsWireFrameShader::CSkinnedAnimationObjectsWireFrameShader()
-{
-}
-
-CSkinnedAnimationObjectsWireFrameShader::~CSkinnedAnimationObjectsWireFrameShader()
-{
-}
-
-void CSkinnedAnimationObjectsWireFrameShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
-{
-}
-
-void CSkinnedAnimationObjectsWireFrameShader::ReleaseObjects()
-{
-	if (m_ppObjects)
-	{
-		for (int j = 0; j < m_nObjects; j++) if (m_ppObjects[j]) m_ppObjects[j]->Release();
-		delete[] m_ppObjects;
-	}
-}
-
-void CSkinnedAnimationObjectsWireFrameShader::AnimateObjects(float fTimeElapsed)
-{
-	m_fElapsedTime = fTimeElapsed;
-}
-
-void CSkinnedAnimationObjectsWireFrameShader::ReleaseUploadBuffers()
-{
-	for (int j = 0; j < m_nObjects; j++) if (m_ppObjects[j]) m_ppObjects[j]->ReleaseUploadBuffers();
-}
-
-void CSkinnedAnimationObjectsWireFrameShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
-{
-	CSkinnedAnimationWireFrameShader::Render(pd3dCommandList, pCamera);
-
-	for (int j = 0; j < m_nObjects; j++)
-	{
-		if (m_ppObjects[j])
-		{
-			m_ppObjects[j]->Animate(m_fElapsedTime);
-			m_ppObjects[j]->Render(pd3dCommandList, pCamera);
-		}
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

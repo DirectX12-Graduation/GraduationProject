@@ -245,6 +245,7 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 	if (nCameraMode == THIRD_PERSON_CAMERA)
 	{
 		CGameObject::Render(pd3dCommandList, pCamera);
+		m_CollManager->Render(pd3dCommandList, pCamera);
 	}
 }
 

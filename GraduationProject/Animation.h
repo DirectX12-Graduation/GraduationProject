@@ -143,6 +143,7 @@ public:
 
 public:
 	void SetAnimationSet(int nAnimationSet) { m_nAnimationSet = nAnimationSet; }
+	int GetAnimationSet() { return m_nAnimationSet; }
 
 	void SetEnable(bool bEnable) { m_bEnable = bEnable; }
 	void SetSpeed(float fSpeed) { m_fSpeed = fSpeed; }
@@ -194,9 +195,15 @@ public:
 private:
 	//int m_nTracks = track_name::length;
 	int m_nCurrentTracks = 0;
+	int m_idleNum = 0;
+	bool isAttack = false;
 
 public:
+	void SetAttackEnable(bool value) { isAttack = value; }
+	bool GetAttackEnable() { return isAttack; }
+	int GetCurrentTrackNum() { return m_nCurrentTracks; }
 	void SetCurrentTrackNum(int index) { m_nCurrentTracks = index; }
+	void SetIdleNum(int num) { m_idleNum = num; }
 
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 

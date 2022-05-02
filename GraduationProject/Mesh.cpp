@@ -1166,6 +1166,101 @@ void CModelMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* p
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, pVertexBufferViews);
 }
 
+void CModelMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
+{
+	char pstrToken[64] = { '\0' };
+	BYTE nStrLength = 0;
+	UINT nReads = 0;
+
+	::ReadStringFromFile(pInFile, m_pstrMeshName);
+
+	for (; ; )
+	{
+		::ReadStringFromFile(pInFile, pstrToken);
+
+		if (!strcmp(pstrToken, "<Bounds>:"))
+		{
+			XMFLOAT3 min, max;
+			nReads = (UINT)::fread(&min, sizeof(XMFLOAT3), 1, pInFile);
+			nReads = (UINT)::fread(&max, sizeof(XMFLOAT3), 1, pInFile);
+			nReads = (UINT)::fread(&m_xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
+
+			SetBoundingBoxValues(max, min);
+
+			//nReads = (UINT)::fread(&m_xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
+		}
+		else if (!strcmp(pstrToken, "<Polygons>:"))
+		{
+			int nPolygons = ::ReadIntegerFromFile(pInFile);
+			for (; ; )
+			{
+				::ReadStringFromFile(pInFile, pstrToken);
+
+				if (!strcmp(pstrToken, "<SubIndices>:"))
+				{
+					int nIndices = ::ReadIntegerFromFile(pInFile);
+					int nSubMeshes = ::ReadIntegerFromFile(pInFile);
+
+					::ReadStringFromFile(pInFile, pstrToken);
+
+					if (!strcmp(pstrToken, "<SubIndex>:"))
+					{
+						int nIndex = ::ReadIntegerFromFile(pInFile);
+						m_nVertices = ::ReadUnsignedIntegerFromFile(pInFile);
+						if (m_nVertices > 0)
+						{
+							m_nType |= VERTEXT::Position;
+							m_pxmf3Positions = new XMFLOAT3[m_nVertices];
+							nReads = (UINT)::fread(m_pxmf3Positions, sizeof(XMFLOAT3), m_nVertices, pInFile);
+
+							m_pd3dPositionBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf3Positions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+
+							m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+							m_d3dPositionBufferView.StrideInBytes = sizeof(XMFLOAT3);
+							m_d3dPositionBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
+						}
+					}
+				}
+				else if (!strcmp(pstrToken, "<UVs>:"))
+				{
+					m_nVertices = ::ReadUnsignedIntegerFromFile(pInFile);
+					int num = ::ReadUnsignedIntegerFromFile(pInFile);
+
+					if (m_nVertices > 0)
+					{
+						for (int i = 0; i < num; ++i) {
+
+							::ReadStringFromFile(pInFile, pstrToken);
+
+							if (!strcmp(pstrToken, "<UV>:"))
+							{
+								int index = ::ReadIntegerFromFile(pInFile);
+								XMFLOAT2* pxmf2TextureCoords = new XMFLOAT2[m_nVertices];
+								nReads = (UINT)::fread(pxmf2TextureCoords, sizeof(XMFLOAT2), m_nVertices, pInFile);
+
+								if (i) continue;
+
+								m_pd3dTextureCoordBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf2TextureCoords, sizeof(XMFLOAT2) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dTextureCoordUploadBuffer);
+
+								m_d3dTextureCoordBufferView.BufferLocation = m_pd3dTextureCoordBuffer->GetGPUVirtualAddress();
+								m_d3dTextureCoordBufferView.StrideInBytes = sizeof(XMFLOAT2);
+								m_d3dTextureCoordBufferView.SizeInBytes = sizeof(XMFLOAT2) * m_nVertices;
+							}
+						}
+					}
+				}
+				else if (!strcmp(pstrToken, "</Polygons>"))
+				{
+					break;
+				}
+			}
+		}
+		else if (!strcmp(pstrToken, "</Mesh>"))
+		{
+			break;
+		}
+	}
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CSkyBoxMesh::CSkyBoxMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float fDepth) : CMesh(pd3dDevice, pd3dCommandList)

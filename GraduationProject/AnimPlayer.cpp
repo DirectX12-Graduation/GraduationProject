@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "AnimPlayer.h"
 #include "Scene.h"
+#include "CollisionManager.h"
 
 CAnimPlayer::CAnimPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext, int
@@ -21,6 +22,9 @@ CAnimPlayer::CAnimPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	InitPlayerMatrics(pContext);
 
 	SetAnimationTypes();
+
+	string name = "../Assets/Model/Bounding/Knight.txt";
+	m_CollManager = new CCollisionManager(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, dynamic_cast<CGameObject*>(this),name);
 
 	if (pAngrybotModel) delete pAngrybotModel;
 }
@@ -63,7 +67,7 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 100.0f, 0.0f));
 		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
 		break;
-	case SPACESHIP_CAMERA:
+	//case SPACESHIP_CAMERA:
 		break;
 	case THIRD_PERSON_CAMERA:
 		SetFriction(250.0f);
@@ -72,8 +76,8 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		SetMaxVelocityY(400.0f);
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 250.0f, -500.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 200.0f, -500.0f));
+		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 	break; default:
@@ -139,6 +143,8 @@ void CAnimPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
 
 bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (isMove) return false;
+
 	switch (nMessageID)
 	{
 		case WM_KEYDOWN:
@@ -146,26 +152,33 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 			{
 				case 'Q':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack);
+					m_pSkinnedAnimationController->SetAttackEnable(true);
 					break;
 	
 				case 'W':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::run);
+					m_pSkinnedAnimationController->SetAttackEnable(false);
 					break;
 
 				case 'S':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_back);
+					m_pSkinnedAnimationController->SetAttackEnable(false);
 					break;
 
 				case 'A':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_left);
+					m_pSkinnedAnimationController->SetAttackEnable(false);
 					break;
 
 				case 'D':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk_right);
+					m_pSkinnedAnimationController->SetAttackEnable(false);
 					break;
 
 				case '1':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack_combo);
+					m_pSkinnedAnimationController->SetAttackEnable(true);
+
 					break;
 				case '2':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack_magic);
@@ -182,7 +195,7 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 				case 'S':
 				case 'A':
 				case 'D':
-					//SwitchAnimationState(track_name::idle);
+					m_pSkinnedAnimationController->SwitchAnimationState(track_name::idle);
 					break;
 			}
 			break;
@@ -194,7 +207,7 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CAnimPlayer::SetAnimationTypes()
 {
-	bool bAnimType[track_name::length] = { true, false, true, true, true, true,true, false, false,false,false,false,false,false,false,true,false};
+	bool bAnimType[track_name::length] = { true, false, true, true, true, true,true,false, false,false,false,false,false,true,false,true,false};
 	m_pSkinnedAnimationController->SetAnimationTypes(bAnimType);
 }
 
@@ -205,4 +218,40 @@ void CAnimPlayer::SetAnimationController(ID3D12Device* pd3dDevice, ID3D12Graphic
 	m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, track_name::length, pModel);
 	m_pSkinnedAnimationController->SetCurrentTrackNum(track_name::idle);
 	m_pSkinnedAnimationController->SetAnimationTracks(bAnimType);
+}
+
+bool CAnimPlayer::SetInteraction(XMFLOAT3& center, XMFLOAT4X4& world)
+{
+	XMFLOAT3 pos = XMFLOAT3(center.x, m_xmf3Position.y, center.z);
+	SetPosition(pos);
+	SetPlayerLookAtPos(world, center);
+
+	isMove = !isMove;
+	int track = (isMove) ? track_name::handling : track_name::idle;
+	m_pSkinnedAnimationController->SwitchAnimationState(track);
+
+	if (track == track_name::handling) {
+		ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+		return true;
+	}
+	else {
+		ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
+		return false;
+	}
+}
+
+
+void CAnimPlayer::SetPlayerLookAtPos(DirectX::XMFLOAT4X4& world, DirectX::XMFLOAT3& center)
+{
+	XMFLOAT3 lookPos = XMFLOAT3(world._41, 0.0f, world._43);
+	XMFLOAT3 playerPos = XMFLOAT3(m_xmf3Position.x, 0.0f, m_xmf3Position.z);
+
+#ifdef _WITH_LEFT_HAND_COORDINATES
+	XMFLOAT4X4 mtxLookAt = Matrix4x4::LookAtLH(playerPos, lookPos, m_xmf3Up);
+#else
+	XMFLOAT4X4 mtxLookAt = Matrix4x4::LookAtRH(m_xmf3Position, xmf3LookAt, xmf3PlayerUp);
+#endif
+	m_xmf3Right = XMFLOAT3(mtxLookAt._11, mtxLookAt._21, mtxLookAt._31);
+	m_xmf3Up = XMFLOAT3(mtxLookAt._12, mtxLookAt._22, mtxLookAt._32);
+	m_xmf3Look = XMFLOAT3(mtxLookAt._13, mtxLookAt._23, mtxLookAt._33);
 }
