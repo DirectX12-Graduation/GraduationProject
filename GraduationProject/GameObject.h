@@ -298,6 +298,9 @@ public:
 	float GetDamage() { return m_fDamage; }
 	float GetHp() { return m_fHp; }
 	float GetMaxHp() { return m_fMaxHp; }
+
+	void SetImGuiCollider();
+	void SetImGuiColliderTrees();
 };
 
 class CRotatingObject : public CGameObject
