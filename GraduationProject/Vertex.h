@@ -27,6 +27,8 @@ public:
 	CVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); }
 	CVertex(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
 	~CVertex() { }
+
+	void SetPosition(XMFLOAT3& position) { m_xmf3Position = position; }
 };
 
 class CDiffusedVertex : public CVertex
@@ -125,4 +127,19 @@ public:
 	CIlluminatedTexturedVertex(float x, float y, float z, XMFLOAT2 xmf2TexCoord, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f)) { m_xmf3Position = XMFLOAT3(x, y, z); m_xmf3Normal = xmf3Normal; m_xmf2TexCoord = xmf2TexCoord; }
 	CIlluminatedTexturedVertex(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT2 xmf2TexCoord = XMFLOAT2(0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf3Normal = xmf3Normal; m_xmf2TexCoord = xmf2TexCoord; }
 	~CIlluminatedTexturedVertex() { }
+};
+
+class CParticleVertex : public CVertex
+{
+public:
+	XMFLOAT3						m_xmf3Color = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT3						m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT3						m_xmf3Acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT2						m_xmf2Size = XMFLOAT2(0.0f, 0.0f);
+	XMFLOAT2						m_xmf2AgeLifetime = XMFLOAT2(0.0f, 0.0f); //(Age, Lifetime)
+	UINT							m_nType = 0;
+
+public:
+	CParticleVertex() { }
+	~CParticleVertex() { }
 };

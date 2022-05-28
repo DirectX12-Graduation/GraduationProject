@@ -68,9 +68,9 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 
-	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
-	virtual void OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet, int nPipelineState = 0);
+	virtual void OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
 
 	void CalculateBoundingBox(XMFLOAT3* pxmf3Points, UINT nStride);
 
@@ -192,7 +192,8 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 
-	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,7 +282,7 @@ class CModelMesh : public CMesh
 public:
 	CModelMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CModelMesh();
-	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
 	virtual void LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
 };
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,6 +334,48 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 
-	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
 	virtual void UpdateBoundingTransform(CCollision* pCollision, XMFLOAT4X4& xmf4x4World);
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+#define MAX_PARTICLES					999
+#define _WITH_QUERY_DATA_SO_STATISTICS
+
+class CParticleMesh : public CMesh
+{
+public:
+	CParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles);
+	virtual ~CParticleMesh();
+
+	bool								m_bStart = true;
+
+	UINT								m_nMaxParticles = MAX_PARTICLES;
+
+	ID3D12Resource* m_pd3dStreamOutputBuffer = NULL;
+	ID3D12Resource* m_pd3dDrawBuffer = NULL;
+
+	ID3D12Resource* m_pd3dDefaultBufferFilledSize = NULL;
+	ID3D12Resource* m_pd3dUploadBufferFilledSize = NULL;
+	UINT64* m_pnUploadBufferFilledSize = NULL;
+
+#ifdef _WITH_QUERY_DATA_SO_STATISTICS
+	ID3D12QueryHeap* m_pd3dSOQueryHeap = NULL;
+	ID3D12Resource* m_pd3dSOQueryBuffer = NULL;
+	D3D12_QUERY_DATA_SO_STATISTICS* m_pd3dSOQueryDataStatistics = NULL;
+#else
+	ID3D12Resource* m_pd3dReadBackBufferFilledSize = NULL;
+#endif
+
+
+	D3D12_STREAM_OUTPUT_BUFFER_VIEW		m_d3dStreamOutputBufferView;
+
+	virtual void CreateVertexBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime);
+	virtual void CreateStreamOutputBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nMaxParticles);
+
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState = 0);
 };

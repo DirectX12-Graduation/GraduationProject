@@ -73,16 +73,18 @@ void CCamera::SetScissorRect(LONG xLeft, LONG yTop, LONG xRight, LONG yBottom)
 	m_d3dScissorRect.bottom = yBottom;
 }
 
-void CCamera::GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance,
-	float fAspectRatio, float fFOVAngle)
+void CCamera::GeneratePerspectiveProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle)
 {
 #ifdef _WITH_LEFT_HAND_COORDINATES
 	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(fFOVAngle), fAspectRatio, fNearPlaneDistance, fFarPlaneDistance);
 #else
 	m_xmf4x4Projection = Matrix4x4::PerspectiveFovRH(XMConvertToRadians(fFOVAngle), fAspectRatio, fNearPlaneDistance, fFarPlaneDistance);
 #endif
-//	XMMATRIX xmmtxProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(fFOVAngle), fAspectRatio, fNearPlaneDistance, fFarPlaneDistance);
-//	XMStoreFloat4x4(&m_xmf4x4Projection, xmmtxProjection);
+}
+
+void CCamera::GenerateOrthographicProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fWidth, float fHeight)
+{
+	m_xmf4x4OrthoProjection = Matrix4x4::PerspectiveOrthoLH(fWidth, fHeight, fNearPlaneDistance, fFarPlaneDistance);
 }
 
 /*카메라 변환 행렬을 생성한다. 카메라의 위치 벡터, 카메라가 바라보는 지점, 
@@ -134,6 +136,7 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	XMStoreFloat4x4(&m_pcbMappedCamera->m_xmf4x4View, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4View)));
 	XMStoreFloat4x4(&m_pcbMappedCamera->m_xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
 	XMStoreFloat4x4(&m_pcbMappedCamera->m_xmf4x4ViewProjection, XMMatrixTranspose(XMMatrixMultiply(XMLoadFloat4x4(&m_xmf4x4View), XMLoadFloat4x4(&m_xmf4x4Projection))));
+	XMStoreFloat4x4(&m_pcbMappedCamera->m_xmf4x4OrthoProjection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4OrthoProjection)));
 
 	::memcpy(&m_pcbMappedCamera->m_xmf3Position, &m_xmf3Position, sizeof(XMFLOAT3));
 
@@ -154,6 +157,11 @@ void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommand
 {
 	pd3dCommandList->RSSetViewports(1, &m_d3dViewport);
 	pd3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
+}
+
+void CCamera::SetViewOrtho()
+{
+	m_xmf4x4View = Matrix4x4::Identity();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -248,6 +256,43 @@ void CFirstPersonCamera::Rotate(float x, float y, float z)
 		m_xmf3Right = Vector3::TransformNormal(m_xmf3Right, xmmtxRotate);
 	}
 }
+
+void CFirstPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed)
+{
+	if (m_pPlayer)
+	{
+		XMFLOAT4X4 xmf4x4Rotate = Matrix4x4::Identity();
+		XMFLOAT3 xmf3Right = m_pPlayer->GetRightVector();
+		XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
+		XMFLOAT3 xmf3Look = m_pPlayer->GetLookVector();
+		xmf4x4Rotate._11 = xmf3Right.x; xmf4x4Rotate._21 = xmf3Up.x; xmf4x4Rotate._31 = xmf3Look.x;
+		xmf4x4Rotate._12 = xmf3Right.y; xmf4x4Rotate._22 = xmf3Up.y; xmf4x4Rotate._32 = xmf3Look.y;
+		xmf4x4Rotate._13 = xmf3Right.z; xmf4x4Rotate._23 = xmf3Up.z; xmf4x4Rotate._33 = xmf3Look.z;
+
+		XMFLOAT3 xmf3Offset = Vector3::TransformCoord(m_xmf3Offset, xmf4x4Rotate);
+		XMFLOAT3 xmf3Position = Vector3::Add(m_pPlayer->GetPosition(), xmf3Offset);
+		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, m_xmf3Position);
+		float fLength = Vector3::Length(xmf3Direction);
+		xmf3Direction = Vector3::Normalize(xmf3Direction);
+		float fTimeLagScale = (m_fTimeLag) ? fTimeElapsed * (1.0f / m_fTimeLag) : 1.0f;
+		float fDistance = fLength * fTimeLagScale;
+		if (fDistance > fLength) fDistance = fLength;
+		if (fLength < 0.01f) fDistance = fLength;
+		if (fDistance > 0)
+		{
+			m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Direction, fDistance);
+		}
+	}
+}
+
+void CFirstPersonCamera::SetLook(XMFLOAT3& xmf3Look)
+{
+	m_xmf3Look = XMFLOAT3(xmf3Look);
+	m_xmf3Up = m_pPlayer->GetUpVector();
+	m_xmf3Right = Vector3::CrossProduct(m_xmf3Up, m_xmf3Look, true);
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////
 

@@ -378,6 +378,21 @@ void CAnimationController::AdvanceTime(float fTimeElapsed, CGameObject* pRootGam
 	}
 }
 
+void CAnimationController::InitAnimationTime()
+{
+	if (m_pAnimationTracks)
+	{
+		for (int i = 0; i < m_nAnimationTracks; i++)
+		{
+			if (m_pAnimationTracks[i].m_bEnable)
+			{
+				CAnimationSet* pAnimationSet = m_pAnimationSets->m_ppAnimationSets[m_pAnimationTracks[i].m_nAnimationSet];
+				pAnimationSet->m_fPosition = m_pAnimationTracks[i].m_fStartTime;	
+			}
+		}
+	}
+}
+
 void CAnimationController::SetAnimationTypes(bool* types)
 {
 	for (int i = 0; i < m_nAnimationTracks; ++i)
@@ -402,9 +417,13 @@ void CAnimationController::SetAnimationTracks(bool* isSetNumberOne)
 
 void CAnimationController::SwitchAnimationState(int nType)
 {
+	int beforeTracks = m_nCurrentTracks;
 	SetTrackEnable(m_nCurrentTracks, false);
 	m_nCurrentTracks = nType;
 	SetTrackEnable(m_nCurrentTracks, true);
+
+	if (beforeTracks != m_nCurrentTracks)
+		InitAnimationTime();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

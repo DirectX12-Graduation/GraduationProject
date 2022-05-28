@@ -212,6 +212,9 @@ public:
 
 protected:
 	CCollisionManager* m_CollisionManager = nullptr;
+	float m_fMaxHp;
+	float m_fHp;
+	float m_fDamage;
 
 public:
 	void SetMesh(CMesh* pMesh);
@@ -286,17 +289,15 @@ public:
 	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName, CShader* pShader);
 
 	static void PrintFrameInfo(CGameObject* pGameObject, CGameObject* pParent);
-	void MakeCollider(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-	void SetIsRotate(bool bVal);
-	void LoadFromCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, string filename);
-	virtual void SetImGuiCollider();
-	void SetImGuiColliderTrees();
-	bool IsBoundingBox(int i);
-	void UpdateCollision();
-	BoundingBox GetBoundingBoxPerIndex(int i);
-	BoundingSphere GetBoundingSpherePerIndex(int i);
-	void CalculateBoundPerIndex(int i);
-	void SetBoundingScales(float x, float y, float z);
+	void SetAttackEnable(bool value){m_pSkinnedAnimationController->SetAttackEnable(value);}
+
+	void SetDamage(float val) { m_fDamage = val; }
+	void SetHp(float val) { m_fHp = val; }
+	void SetMaxHp(float val) { m_fMaxHp = val; }
+
+	float GetDamage() { return m_fDamage; }
+	float GetHp() { return m_fHp; }
+	float GetMaxHp() { return m_fMaxHp; }
 };
 
 class CRotatingObject : public CGameObject
@@ -490,25 +491,71 @@ private:
 	LPVOID m_pUpdatedContext;
 
 	CGameObject* m_pTargetObject = NULL;
-	float m_fDetectionRange = 200.0f;
-
-	float m_fHp;
-	float m_fDamage;
+	float m_fDetectionRange = 2000.0f;
 
 public:
 	void SetUpdatedContext(LPVOID pContext) { m_pUpdatedContext = pContext; }
 
-	void FindTarget();
-	void ChaseTarget();
+	void FindTarget(CGameObject* pObject);
+	void ChaseTarget(float fTimeElapsed);
 	void AttackTarget();
 
 	void SetDetectionRange(float range) { m_fDetectionRange = range; }
-	void SetHp(float hp) { m_fHp = hp; }
-	void SetDamage(float damage) { m_fDamage = damage; }
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void Animate(float fTimeElapsed, CCamera* pCamera = NULL);
 
 	virtual bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void MonsterDead();
+	void DecreaseHp(float val);
+
+};
+
+struct CB_HP_INFO
+{
+	float ratioHp;
+};
+
+class CUIObject : public CGameObject
+{
+public:
+	CUIObject();
+	virtual ~CUIObject();
+
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
+	//void SetHp(CMonsterObject* pObject);
+	void SetTarget(CGameObject* pObject) { m_pTargetObject = pObject;}
+	void UpdateHpRatio();
+	bool IsTarget() { return (m_pTargetObject) ? true : false; }
+
+private:
+	ID3D12Resource* m_pd3dcbHpInfo = NULL;
+	CB_HP_INFO* m_pcbMappedHpInfo = NULL;
+	CGameObject* m_pTargetObject = NULL;
+
+	float ratioHp = 1.0f;
+};
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+class CParticleObject : public CGameObject
+{
+public:
+	CParticleObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles);
+	virtual ~CParticleObject();
+
+	CTexture* m_pRandowmValueTexture = NULL;
+
+	void ReleaseUploadBuffers();
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+	ID3D12CommandAllocator* m_pd3dCommandAllocator = NULL;
+	ID3D12GraphicsCommandList* m_pd3dCommandList = NULL;
+
+	ID3D12Fence* m_pd3dFence = NULL;
+	UINT64							m_nFenceValue = 0;
+	HANDLE							m_hFenceEvent;
 };

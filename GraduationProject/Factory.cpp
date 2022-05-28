@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Factory.h"
 #include "Scene.h"
+#include "Player.h"
 #define terrainSizeOffset 220.0f / 150.0f
 #define terrainXOffset 1000.0f;
 #define terrainZOffset 1000.0f;
@@ -258,8 +259,10 @@ void CObjectFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature*
 			CGameObject* pObject = NULL;
 			CLoadedModelInfo* pHouse3Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_3.bin", NULL);
 
+
 			pObject = new CGameObject;
 			pObject->SetChild(pHouse3Model->m_pModelRootObject, true);
+
 
 			pObject->m_pTexture = pHouse3Texture;
 
@@ -281,7 +284,6 @@ void CObjectFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature*
 		else if (name.compare("house_4") == 0) {
 			CGameObject* pObject = NULL;
 			CLoadedModelInfo* pHouse4Model = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/house_4.bin", NULL);
-
 			pObject = new CGameObject;
 			pObject->SetChild(pHouse4Model->m_pModelRootObject, true);
 
@@ -304,6 +306,7 @@ void CObjectFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature*
 			_gameObjects.emplace_back(pObject);
 		}
 	}
+
 }
 
 ///
@@ -499,6 +502,9 @@ void CMonsterFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature
 			pObject->SetChild(pZombieModel->m_pModelRootObject, true);
 			pObject->m_pTexture = pZombieTexture;
 			pObject->m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, CMonsterObject::track_name::length, pZombieModel);
+			pObject->SetHp(200.0f);
+			pObject->SetMaxHp(200.0f);
+			pObject->SetDamage(30.0f);
 		}
 		if (name.compare("Zombie_2") == 0) {
 			CLoadedModelInfo* pClownModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "../Assets/Model/WhiteClown.bin", NULL);
@@ -506,6 +512,9 @@ void CMonsterFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature
 			pObject->SetChild(pClownModel->m_pModelRootObject, true);
 			pObject->m_pTexture = pClownTexture;
 			pObject->m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, CMonsterObject::track_name::length, pClownModel);
+			pObject->SetHp(250.0f);
+			pObject->SetMaxHp(250.0f);
+			pObject->SetDamage(50.0f);
 		}
 
 		float transX = px * xmf3TerrainScale.x * terrainSizeOffset + terrainXOffset;
@@ -548,3 +557,89 @@ void CMonsterFactory::SetObjectCollision(ID3D12Device* pd3dDevice, ID3D12Graphic
 		_gameObjects[i]->UpdateTransform(nullptr);
 	}
 }
+
+void CMonsterFactory::FindTarget(CGameObject* pObject)
+{
+	for (auto& monster : _gameObjects)
+	{
+		dynamic_cast<CMonsterObject*>(monster)->FindTarget(pObject);
+	}
+}
+
+/////////////////////////
+
+void CUIFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext,CPlayer* pPlayer)
+{
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
+
+	m_pCamera = new CCamera();
+	m_pCamera->GenerateOrthographicProjectionMatrix(0.0f,1.0f, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+	m_pCamera->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	
+	///
+
+	CGameObject* pObject = NULL;
+	pObject = new CUIObject();
+	CTexture* phptexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
+	phptexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/UI/hp.dds", 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, phptexture, Signature::Graphics::texture, true);
+	CBillboardMesh* pMesh = new CBillboardMesh(pd3dDevice, pd3dCommandList, 150.0f, 15.0f);
+
+	CGameObject* pTarget = pPlayer;
+	dynamic_cast<CUIObject*>(pObject)->SetTarget(pTarget);
+
+	pObject->SetPosition(-FRAME_BUFFER_WIDTH / 2 + 90, -FRAME_BUFFER_HEIGHT / 2 + 15, 0.0f);
+	pObject->SetMesh(pMesh);
+	pObject->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	CHpShader* m_pShader = new CHpShader();
+
+	DXGI_FORMAT pdxgiRtvFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
+
+	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+
+	CMaterial* m_pMaterial = new CMaterial(1);
+	m_pMaterial->SetTexture(phptexture);
+	m_pMaterial->SetShader(m_pShader);
+	pObject->SetMaterial(0, m_pMaterial);
+	_gameObjects.emplace_back(pObject);
+
+	////
+
+	CGameObject* pMonsterUIObject = NULL;
+	pMonsterUIObject = new CUIObject();
+	CBillboardMesh* pMesh2 = new CBillboardMesh(pd3dDevice, pd3dCommandList, 200.0f, 20.0f);
+	pMonsterUIObject->SetPosition(0.0f, FRAME_BUFFER_HEIGHT/4 + FRAME_BUFFER_HEIGHT/6, 0.0f);
+	pMonsterUIObject->SetMesh(pMesh2);
+	pMonsterUIObject->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	pMonsterUIObject->SetMaterial(0, m_pMaterial);
+	_gameObjects.emplace_back(pMonsterUIObject);
+
+}
+
+void CUIFactory::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	m_pCamera->SetViewportsAndScissorRects(pd3dCommandList);
+	m_pCamera->UpdateShaderVariables(pd3dCommandList);
+	for (auto& object : _gameObjects)
+	{
+		if (!dynamic_cast<CUIObject*>(object)->IsTarget()) continue;
+		object->Render(pd3dCommandList, pCamera);
+	}
+	pCamera->UpdateShaderVariables(pd3dCommandList);
+}
+
+void CUIFactory::AnimateObjects(float fTimeElapsed, CCamera* pCamrea)
+{
+	for (auto& object : _gameObjects)
+	{
+		object->Animate(fTimeElapsed, m_pCamera);
+	}
+}
+
+void CUIFactory::SetTargetMonster(CGameObject* pObject)
+{
+	dynamic_cast<CUIObject*>(_gameObjects[1])->SetTarget(pObject);
+}
+

@@ -53,6 +53,7 @@ protected:
 	CCamera *m_pCamera = NULL;
 
 	CCollisionManager* m_CollManager = nullptr;
+
 public:
 	CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL, int nMeshes = 1);
 	virtual ~CPlayer();
@@ -128,4 +129,5 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
 	bool IsPlayerFast();
 	virtual bool SetInteraction(XMFLOAT3& center, XMFLOAT4X4& world) { return false; };
+	virtual void DecreaseHp(float val);
 };

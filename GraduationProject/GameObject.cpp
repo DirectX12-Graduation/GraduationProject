@@ -752,7 +752,7 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 			{
 				if (m_ppMaterials[i])
 				{
-					if (m_ppMaterials[i]->m_pShader) m_ppMaterials[i]->m_pShader->Render(pd3dCommandList, pCamera);
+					if (m_ppMaterials[i]->m_pShader) m_ppMaterials[i]->m_pShader->Render(pd3dCommandList, pCamera,0);
 					m_ppMaterials[i]->UpdateShaderVariable(pd3dCommandList);
 				}
 				m_pMesh->Render(pd3dCommandList, i);
@@ -1367,19 +1367,52 @@ CMonsterObject::~CMonsterObject()
 {
 }
 
-void CMonsterObject::FindTarget()
+void CMonsterObject::FindTarget(CGameObject* pObject)
 {
+	float distance = Vector3::Distance(GetPosition(), pObject->GetPosition());
+
+	if (distance < m_fDetectionRange)
+		m_pTargetObject = pObject;
+	else
+		m_pTargetObject = NULL;
 }
 
-void CMonsterObject::ChaseTarget()
+void CMonsterObject::ChaseTarget(float fTimeElapsed)
 {
+	if (m_pTargetObject == NULL) return;
+
+	XMFLOAT3 targetPosition = m_pTargetObject->GetPosition();
+	XMFLOAT3 monsterPosition = GetPosition();
+
+	targetPosition.y = 0;
+	monsterPosition.y = 0;
+
+	XMFLOAT3 xmf3Direction = Vector3::Subtract(targetPosition, monsterPosition);
+
+	float fYaw = 0.0f;
+	float fAngle = 0.0f, fScalarTriple = 0.0f, nSign = 0.0f;
+
+	XMFLOAT3 monsterLook = GetLook();
+
+	fScalarTriple = Vector3::DotProduct(GetUp(), Vector3::CrossProduct(xmf3Direction, monsterLook));
+	nSign = fScalarTriple < 0.0f ? 1.0f : -1.0f;
+	fAngle = Vector3::Angle(xmf3Direction, monsterLook) * nSign;
+
+	fYaw = fAngle * fTimeElapsed;
+	
+	Rotate(0.0f, fYaw, 0.0f);
+
+	// 전진
+	float distance = Vector3::Distance(monsterPosition, targetPosition);
+	if (distance > 200.0f)
+		MoveForward(50.0f * fTimeElapsed);
 }
 
 void CMonsterObject::AttackTarget()
 {
+	if (m_fHp <= 0) return;
 
 	int curNum = m_pSkinnedAnimationController->GetCurrentTrackNum();
-	if (curNum == track_name::death1 || curNum == track_name::death2) return;
 
 	int randomNum = rand() % 2;
 	int trackNum = randomNum ? track_name::attack1 : track_name::attack2;
@@ -1400,6 +1433,15 @@ void CMonsterObject::MonsterDead()
 	m_pSkinnedAnimationController->SetAttackEnable(false);
 }
 
+void CMonsterObject::DecreaseHp(float val)
+{
+	m_fHp -= val;
+	if (m_fHp <= 0)
+	{
+		MonsterDead();
+	}
+}
+
 void CMonsterObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	UpdateTransform(NULL);
@@ -1409,9 +1451,23 @@ void CMonsterObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera*
 
 void CMonsterObject::Animate(float fTimeElapsed, CCamera* pCamera)
 {
-	FindTarget();
-	ChaseTarget();
-
+	if (m_fHp > 0) {
+		if (m_pTargetObject != NULL) {
+			if (m_pSkinnedAnimationController->GetCurrentTrackNum() != track_name::attack1 &&
+				m_pSkinnedAnimationController->GetCurrentTrackNum() != track_name::attack2) {
+				ChaseTarget(fTimeElapsed);
+			}
+			if (m_pSkinnedAnimationController->GetCurrentTrackNum() == track_name::idle1 ||
+				m_pSkinnedAnimationController->GetCurrentTrackNum() == track_name::idle2) {
+				m_pSkinnedAnimationController->SwitchAnimationState(track_name::walk);
+			}
+		}
+		else {
+			if (m_pSkinnedAnimationController->GetCurrentTrackNum() == track_name::walk) {
+				m_pSkinnedAnimationController->SwitchAnimationState(track_name::idle1);
+			}
+		}
+	}
 	CGameObject::Animate(fTimeElapsed, pCamera);
 }
 
@@ -1431,4 +1487,124 @@ bool CMonsterObject::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		}
 	}
 	return(false);
+}
+
+///////////////////////
+
+CUIObject::CUIObject() : CGameObject(1)
+{
+	XMFLOAT3 m_xmf3RotationAxis = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	CGameObject::Rotate(&m_xmf3RotationAxis, 180.0f);
+}
+
+CUIObject::~CUIObject()
+{
+}
+
+void CUIObject::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CGameObject::CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	UINT ncbElementBytes = ((sizeof(CB_HP_INFO) + 255) & ~255);
+	m_pd3dcbHpInfo = ::CreateBufferResource(pd3dDevice, pd3dCommandList,
+		NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbHpInfo->Map(0, NULL, (void**)&m_pcbMappedHpInfo);
+
+}
+
+void CUIObject::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World)
+{
+	CGameObject::UpdateShaderVariable(pd3dCommandList, pxmf4x4World);
+	
+	UpdateHpRatio();
+	m_pcbMappedHpInfo->ratioHp = ratioHp;
+	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbHpInfo->GetGPUVirtualAddress();
+	pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::hp, d3dGpuVirtualAddress);
+}
+
+void CUIObject::UpdateHpRatio()
+{
+	if (m_pTargetObject == NULL) return;
+	float hp = m_pTargetObject->GetHp();
+	float maxhp = m_pTargetObject->GetMaxHp();
+
+	ratioHp = hp / maxhp;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+CParticleObject::CParticleObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles) : CGameObject(1)
+{
+	CParticleMesh* pMesh = new CParticleMesh(pd3dDevice, pd3dCommandList, xmf3Position, xmf3Velocity, xmf3Acceleration, xmf3Color, xmf2Size, fLifetime, nMaxParticles);
+	SetMesh(pMesh);
+
+	CTexture* pParticleTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
+	pParticleTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/flare0.dds", 0);
+
+	CMaterial* pMaterial = new CMaterial(1);
+	pMaterial->SetTexture(pParticleTexture);
+
+	srand((unsigned)time(NULL));
+
+	XMFLOAT4* pxmf4RandomValues = new XMFLOAT4[1000];
+	for (int i = 0; i < 1000; i++) pxmf4RandomValues[i] = XMFLOAT4(RandomValue(-1.0f, 1.0f), RandomValue(-1.0f, 1.0f), RandomValue(-1.0f, 1.0f), RandomValue(0.0f, 1.0f));
+
+	m_pRandowmValueTexture = new CTexture(1, RESOURCE_BUFFER, 0, 1, 0, 0);
+	m_pRandowmValueTexture->CreateBuffer(pd3dDevice, pd3dCommandList, pxmf4RandomValues, 1000, sizeof(XMFLOAT4), DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_GENERIC_READ, 0);
+
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	CParticleShader* pShader = new CParticleShader();
+	pShader->CreateGraphicsPipelineState(pd3dDevice, pd3dGraphicsRootSignature, 0);
+	pShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	// 
+	CScene::CreateShaderResourceViews(pd3dDevice, pParticleTexture, Signature::Graphics::particle_texture,true);
+	CScene::CreateShaderResourceViews(pd3dDevice, m_pRandowmValueTexture, Signature::Graphics::particle_buffer,true,true);
+
+	pMaterial->SetShader(pShader);
+	SetMaterial(0,pMaterial);
+}
+
+CParticleObject::~CParticleObject()
+{
+	if (m_pRandowmValueTexture) m_pRandowmValueTexture->Release();
+
+	//if (m_pd3dCommandAllocator) m_pd3dCommandAllocator->Release();
+	//if (m_pd3dCommandList) m_pd3dCommandList->Release();
+
+	if (m_pd3dFence) m_pd3dFence->Release();
+
+	::CloseHandle(m_hFenceEvent);
+}
+
+void CParticleObject::ReleaseUploadBuffers()
+{
+	if (m_pRandowmValueTexture) m_pRandowmValueTexture->ReleaseUploadBuffers();
+
+	CGameObject::ReleaseUploadBuffers();
+}
+
+void CParticleObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	OnPrepareRender();
+
+	if (m_ppMaterials)
+	{
+		if (m_ppMaterials[0]->m_pShader) m_ppMaterials[0]->m_pShader->OnPrepareRender(pd3dCommandList, 0);
+		if (m_ppMaterials[0]->m_ppTextures) m_ppMaterials[0]->m_ppTextures[0]->UpdateGraphicsShaderVariables(pd3dCommandList);
+
+		if (m_pRandowmValueTexture) m_pRandowmValueTexture->UpdateGraphicsShaderVariables(pd3dCommandList);
+	}
+
+	UpdateShaderVariables(pd3dCommandList);
+
+	m_pMesh->OnPreRender(pd3dCommandList,0, 0); //Stream Output
+	m_pMesh->Render(pd3dCommandList,0, 0); //Stream Output
+	m_pMesh->OnPostRender(pd3dCommandList,0, 0); //Stream Output
+
+	if (m_ppMaterials && m_ppMaterials[0]->m_pShader) m_ppMaterials[0]->m_pShader->OnPrepareRender(pd3dCommandList,1);
+
+	m_pMesh->OnPreRender(pd3dCommandList,0, 1); //Draw
+	m_pMesh->Render(pd3dCommandList,0, 1); //Draw
 }

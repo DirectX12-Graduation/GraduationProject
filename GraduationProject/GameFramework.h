@@ -13,6 +13,8 @@ struct CB_FRAMEWORK_INFO
 	float					m_fElapsedTime;
 	UINT					m_nRenderMode;
 	UINT					m_nBlurMode;
+	XMFLOAT4				m_xmf4FogColor;
+	XMFLOAT4				m_xmf4FogParameter;
 };
 
 #define DEBUG_TESSELLATION			0x20

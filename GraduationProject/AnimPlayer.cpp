@@ -20,11 +20,14 @@ CAnimPlayer::CAnimPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
 	InitPlayerMatrics(pContext);
+	SetHp(1000.0f);
+	SetMaxHp(1000.0f);
+	SetDamage(50.0f);
 
 	SetAnimationTypes();
 
 	string name = "../Assets/Model/Bounding/Knight.txt";
-	m_CollManager = new CCollisionManager(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, dynamic_cast<CGameObject*>(this),name);
+	m_CollManager = new CPlayerCollisionManager(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, dynamic_cast<CGameObject*>(this),name);
 
 	if (pAngrybotModel) delete pAngrybotModel;
 }
@@ -64,8 +67,8 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		SetMaxVelocityY(400.0f);
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 100.0f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 150.0f, 50.0f));
+		m_pCamera->GeneratePerspectiveProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
 		break;
 	//case SPACESHIP_CAMERA:
 		break;
@@ -77,10 +80,11 @@ CCamera* CAnimPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 200.0f, -500.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->GeneratePerspectiveProjectionMatrix(1.01f, 50000.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
-	break; default:
+	break;
+	default:
 		break;
 	}
 	m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
@@ -151,8 +155,12 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 			switch (wParam)
 			{
 				case 'Q':
+					if (m_pSkinnedAnimationController->GetCurrentTrackNum() == track_name::attack)
+						return false;
+
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack);
 					m_pSkinnedAnimationController->SetAttackEnable(true);
+					SetDamage(50.0f);
 					break;
 	
 				case 'W':
@@ -176,8 +184,13 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 					break;
 
 				case '1':
+
+					if (m_pSkinnedAnimationController->GetCurrentTrackNum() == track_name::attack_combo)
+						return false;
+
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack_combo);
 					m_pSkinnedAnimationController->SetAttackEnable(true);
+					SetDamage(70.0f);
 
 					break;
 				case '2':
@@ -211,6 +224,15 @@ void CAnimPlayer::SetAnimationTypes()
 	m_pSkinnedAnimationController->SetAnimationTypes(bAnimType);
 }
 
+void CAnimPlayer::DecreaseHp(float val)
+{
+	m_fHp -= val;
+	if (m_fHp < 0)
+	{
+		m_pSkinnedAnimationController->SwitchAnimationState(track_name::deth);
+	}
+}
+
 void CAnimPlayer::SetAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModel)
 {
 	bool bAnimType[track_name::length] = {false,true,false,false,false,false,false,true,false,false,false,false,true,true,true,false,false};
@@ -232,6 +254,7 @@ bool CAnimPlayer::SetInteraction(XMFLOAT3& center, XMFLOAT4X4& world)
 
 	if (track == track_name::handling) {
 		ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+		dynamic_cast<CFirstPersonCamera*>(m_pCamera)->SetLook(GetLookVector());
 		return true;
 	}
 	else {

@@ -46,6 +46,7 @@ public:
 	void SetPlayerLookAtPos(DirectX::XMFLOAT4X4& world, DirectX::XMFLOAT3& center);
 	void SetAnimationTypes();
 	bool IsPlayerInteraction() { return isMove; }
+	virtual void DecreaseHp(float val);
 
 private:
 	bool isMove = false;

@@ -17,6 +17,7 @@ struct VS_CB_CAMERA_INFO
 	XMFLOAT4X4						m_xmf4x4View;
 	XMFLOAT4X4						m_xmf4x4Projection;
 	XMFLOAT4X4						m_xmf4x4ViewProjection;
+	XMFLOAT4X4						m_xmf4x4OrthoProjection;
 	XMFLOAT3						m_xmf3Position;
 };
 
@@ -49,6 +50,7 @@ protected:
 	XMFLOAT4X4 m_xmf4x4View;
 	// 투영 변환 행렬
 	XMFLOAT4X4 m_xmf4x4Projection;
+	XMFLOAT4X4 m_xmf4x4OrthoProjection;
 
 	// 뷰포트와 씨저 사각형
 	D3D12_VIEWPORT m_d3dViewport;
@@ -79,8 +81,8 @@ public:
 	void RegenerateViewMatrix();
 
 	// 투영 변환 행렬을 생성한다.
-	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float
-		fAspectRatio, float fFOVAngle);
+	void GeneratePerspectiveProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle);
+	void GenerateOrthographicProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fWidth, float fHeight);
 
 	void SetViewport(int xTopLeft, int yTopLeft, int nWidth, int nHeight, float fMinZ =
 		0.0f, float fMaxZ = 1.0f);
@@ -130,6 +132,9 @@ public:
 	/*3인칭 카메라에서 카메라가 바라보는 지점을 설정한다.
 	일반적으로 플레이어를 바라보도록 설정한다.*/
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) {}
+
+	void SetViewOrtho();
+
 };
 
 class CSpaceShipCamera : public CCamera
@@ -147,7 +152,9 @@ public:
 	CFirstPersonCamera(CCamera* pCamera);
 	virtual ~CFirstPersonCamera() { }
 
+	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed);
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
+	void SetLook(XMFLOAT3& xmf3Look);
 };
 
 class CThirdPersonCamera : public CCamera
