@@ -802,12 +802,12 @@ int ReadStringFromFile(FILE* pInFile, char* pstrToken)
 
 void CGameObject::SetImGuiCollider()
 {
-	//ImGui::Begin("hierarchy");
+	ImGui::Begin("hierarchy");
 	//SetPosition(f0, f1, f2);
 
-	//SetImGuiColliderTrees();
+	SetImGuiColliderTrees();
 
-	//if (m_pChild) m_pChild->SetImGuiColliderTrees();
+	if (m_pChild) m_pChild->SetImGuiColliderTrees();
 	ImGui::End();
 }
 
