@@ -11,7 +11,7 @@ struct CB_FRAMEWORK_INFO
 {
 	float					m_fCurrentTime;
 	float					m_fElapsedTime;
-	UINT					m_nRenderMode;
+	UINT					m_nParticleMode;
 	UINT					m_nBlurMode;
 	XMFLOAT4				m_xmf4FogColor;
 	XMFLOAT4				m_xmf4FogParameter;

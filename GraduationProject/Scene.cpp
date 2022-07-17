@@ -161,6 +161,11 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[Signature::Graphics::hp].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[Signature::Graphics::hp].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
+	pd3dRootParameters[Signature::Graphics::particle].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[Signature::Graphics::particle].Descriptor.ShaderRegister = 10; // particle
+	pd3dRootParameters[Signature::Graphics::particle].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[Signature::Graphics::particle].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
 	pd3dRootParameters[Signature::Graphics::texture].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[Signature::Graphics::texture].DescriptorTable.NumDescriptorRanges = 1;
 	pd3dRootParameters[Signature::Graphics::texture].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[Descriptor::Graphics::texture];
@@ -364,6 +369,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("../Assets/Image/Terrain/terrain.raw"), 257, 514, xmf3Scale, xmf4Color);
 	m_pRawFormatImage = new CRawFormatImage(L"../Assets/Image/Objects/ObjectsMap03.raw", 257, 257, true);
 
+	m_pNavMesh = new CNavMesh(pd3dDevice, pd3dCommandList, xmf3Scale);
+
 	m_pSkyBox = new CSkyBox(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 
 	CObjectFactory * pObject = new CObjectFactory();
@@ -381,22 +388,23 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pMonster->SetObjectCollision(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 	_factory.emplace_back(pMonster);
 
+	_particles = new CParticleFactory();
+	_particles->BuildObjects(pd3dDevice, m_pd3dGraphicsRootSignature, pd3dCommandList, m_pTerrain);
+
+	m_pBoss = new CBossMonster(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, m_pTerrain);
+
 	//////
 	
 	BuildCollisions(pd3dDevice, pd3dCommandList);
 
+
 	////////
 
-	m_nParticleObjects = 1;
+	//float fHeight = m_pTerrain->GetHeight(x * 10, z * 10);
+	//pRotatingObject = new CStreamParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(x*10, fHeight, z*10), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(15.0f, 15.0f), 15.0f, MAX_PARTICLES);
 
-	m_ppParticleObjects = new CParticleObject * [m_nParticleObjects];
-
-	XMFLOAT3 xmf3RotateAxis, xmf3SurfaceNormal;
-	CParticleObject* pRotatingObject = NULL;
-	float x = 974.0f, z = 1313.0f;
-	float fHeight = m_pTerrain->GetHeight(x * 10, z * 10);
-	pRotatingObject = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(x*10, fHeight, z*10), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(15.0f, 15.0f), 15.0f, MAX_PARTICLES);
-	m_ppParticleObjects[0] = pRotatingObject;
+	//CStreamExplosionObject* emptyObject = NULL;
+	//emptyObject = new CStreamExplosionObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(x * 10, fHeight, z * 10), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(15.0f, 15.0f), 15.0f, MAX_PARTICLES);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -408,7 +416,7 @@ void CScene::BuildUIObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList*
 
 void CScene::RenderParticle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->Render(pd3dCommandList, pCamera);
+	//_particles->Render(pd3dCommandList, pCamera);
 }
 
 void CScene::BuildCollisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -526,10 +534,18 @@ bool CScene::OnProcessingKeyboardMessage(
 				break;
 			case VK_SPACE:
 				dynamic_cast<CCannonFactory*>(_factory[1])->ActiveCannon();
+				//m_ppParticleObjects[0]->SetActive(false);
+				::gnPatricleMode = 0x00;
 				break;
 			case 'W': case 'A': case 'S': case 'D':
 				dynamic_cast<CCannonFactory*>(_factory[1])->RotateCannon(wParam);
-			default:
+				break;
+			case 'B':
+				int n = m_pBoss->m_pSkinnedAnimationController->GetCurrentTrackNum();
+				n++;
+				if (n == CBossMonster::track_name::length) n = 0;
+				m_pBoss->m_pSkinnedAnimationController->SwitchAnimationState(n);
+				m_pBoss->m_pSkinnedAnimationController->SetIdleNum(n);
 				break;
 		}
 		break;
@@ -735,16 +751,27 @@ void CScene::CreateUnorderedAccessView(ID3D12Device* pd3dDevice, CTexture* pText
 	}
 }
 
-void CScene::AnimateObjects(float fTimeElapsed, CCamera* pCamrea)
+void CScene::AnimateObjects(float fTimeElapsed, CCamera* pCamera)
 {
 	m_fElapsedTime = fTimeElapsed;
 
-	for (auto& factory :_factory) factory->AnimateObjects(fTimeElapsed, pCamrea);
-	for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->Animate(fTimeElapsed, pCamrea);
+	for (auto& factory :_factory) factory->AnimateObjects(fTimeElapsed, pCamera);
 
-	for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->AnimateObjects(fTimeElapsed, pCamrea);
+	m_pBoss->FindTarget(m_pPlayer);
+	m_pBoss->Animate(fTimeElapsed, pCamera);
+
+	//for (int i = 0; i < m_nParticleObjects; i++) {
+	//	m_ppParticleObjects[i]->Animate(fTimeElapsed, pCamera);
+
+	//	if (i > 1) continue;
+	//	m_ppParticleObjects[i]->SetVector(XMFLOAT3(1.0f,0.0f,0.0f));
+	//	m_ppParticleObjects[i]->SetPosition(dynamic_cast<CCannonFactory*>(_factory[1])->GetCannonPosition());
+	//}
+	for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->AnimateObjects(fTimeElapsed, pCamera);
+	_particles->AnimateObjects(fTimeElapsed, pCamera);
+
 	if (m_pLights) {}
-	_ui->AnimateObjects(fTimeElapsed, pCamrea);
+	_ui->AnimateObjects(fTimeElapsed, pCamera);
 
 }
 
@@ -776,8 +803,13 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 
 	//if (m_pSkyBox) m_pSkyBox->Render(pd3dCommandList, pCamera);
 	if (m_pTerrain) m_pTerrain->Render(pd3dCommandList, pCamera);
+	if (m_pNavMesh) m_pNavMesh->Render(pd3dCommandList, 0);
 
 	for (auto& factory : _factory) factory->Render(pd3dCommandList, pCamera);
+
+	m_pBoss->Render(pd3dCommandList, pCamera);
+
+	_particles->Render(pd3dCommandList, pCamera);
 
 	for (int i = 0; i < m_nShaders; i++)
 	{
@@ -791,6 +823,10 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	CheckMonsterCollision();
 	CheckPlayerAttack();
 	CheckMonsterAttack();
+
+	XMFLOAT3 cannon_pos = dynamic_cast<CCannonFactory*>(_factory[1])->GetCannonPosition();
+	if (m_pTerrain->GetHeight(cannon_pos.x,cannon_pos.z) > cannon_pos.y)
+		::gnPatricleMode = 0x30;
 }
 
 void CScene::UIRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)

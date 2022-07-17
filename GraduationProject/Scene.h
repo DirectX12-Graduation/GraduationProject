@@ -4,6 +4,7 @@
 #include "Collision.h"
 #include "CollisionManager.h"
 #include "Factory.h"
+#include "ParticleShader.h"
 
 struct LIGHT
 {
@@ -126,12 +127,15 @@ public:
 
 	int									m_nGameObjects = 0;
 	CGameObject** m_ppGameObjects = NULL;
-	CParticleObject** m_ppParticleObjects = NULL;
-	int	m_nParticleObjects = 0;
 
 	CPlayer* m_pPlayer = NULL;
 
+	CBossMonster* m_pBoss = NULL;
+
 	CHeightMapTerrain* m_pTerrain = NULL;
+
+	CNavMesh* m_pNavMesh = NULL;
+
 	CShader** m_ppShaders = NULL;
 	int	m_nShaders = 0;
 
@@ -157,6 +161,7 @@ protected:
 	MATERIAL* m_pcbMappedMaterials = NULL;
 	vector<CCollision*> collisions;
 	vector<CFactory*> _factory;
+	CParticleFactory* _particles;
 	CUIFactory* _ui;
 
 public:

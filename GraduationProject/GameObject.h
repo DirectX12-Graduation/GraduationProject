@@ -500,10 +500,17 @@ public:
 	void SetUpdatedContext(LPVOID pContext) { m_pUpdatedContext = pContext; }
 
 	void FindTarget(CGameObject* pObject);
-	void ChaseTarget(float fTimeElapsed);
+	void ChaseTarget(float fTimeElapsed, bool bMove=true);
 	void AttackTarget();
 
 	void SetDetectionRange(float range) { m_fDetectionRange = range; }
+
+	void SetHp(float hp) { m_fHp = hp; }
+	void SetDamage(float damage) { m_fDamage = damage; }
+
+	float GetDamage() { return m_fDamage; }
+	float GetHp() { return m_fHp; }
+	CGameObject* GetTarget() { return m_pTargetObject; }
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void Animate(float fTimeElapsed, CCamera* pCamera = NULL);
@@ -511,7 +518,50 @@ public:
 	virtual bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void MonsterDead();
 	void DecreaseHp(float val);
+};
 
+class CBossMonster : public CMonsterObject
+{
+public:
+	enum track_name
+	{
+		attackFlame,
+		attackHand,
+		attackMouth,
+		Defend,
+		Die,
+		FlyFlame,
+		FlyIdle,
+		getHit,
+		Idle,
+		Land,
+		Scream,
+		takeOff,
+		length
+	};
+
+	#define FLY 40.0f
+	#define FLAME 20.0f
+	#define DEFEND 10.0f
+
+	CBossMonster(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext, int nMeshes = 1);
+	virtual ~CBossMonster();
+
+	virtual void Animate(float fTimeElapsed, CCamera* pCamera = NULL);
+	void DoAttackFlame(int curTrackNum);
+	void DoAttackHand(int curTrackNum);
+	void DoAttackMouth(int curTrackNum);
+	void DoTakeOff(int curTrackNum);
+	void DoFlyFlame(int curTrackNum);
+	void DoLand(int curTrackNum);
+	void DoDefend(int curTrackNum);
+
+private:
+	bool bNoticed = false;
+	bool bFlyAttack = false;
+	float FlyCoolDown = FLY;
+	float FlameCoolDown = FLAME;
+	float DefendCoolDown = DEFEND;
 };
 
 struct CB_HP_INFO
@@ -543,17 +593,30 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-class CParticleObject : public CGameObject
+
+struct CB_PARTICLE_INFO
+{
+	float size_x;
+	float size_y;
+	XMFLOAT3 vec3;
+};
+
+class CStreamParticleObject : public CGameObject
 {
 public:
-	CParticleObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles);
-	virtual ~CParticleObject();
+	CStreamParticleObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles);
+	CStreamParticleObject() : CGameObject(1) {};
+	virtual ~CStreamParticleObject();
 
 	CTexture* m_pRandowmValueTexture = NULL;
 
 	void ReleaseUploadBuffers();
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
+
+	void SetVector(XMFLOAT3& vec);
 
 	ID3D12CommandAllocator* m_pd3dCommandAllocator = NULL;
 	ID3D12GraphicsCommandList* m_pd3dCommandList = NULL;
@@ -561,4 +624,17 @@ public:
 	ID3D12Fence* m_pd3dFence = NULL;
 	UINT64							m_nFenceValue = 0;
 	HANDLE							m_hFenceEvent;
+	XMFLOAT2 m_size;
+	XMFLOAT3 m_xmf3vec;
+
+protected:
+	ID3D12Resource* m_pd3dcbParticleInfo = NULL;
+	CB_PARTICLE_INFO* m_pcbMappedParticleInfo = NULL;
+};
+
+class CStreamExplosionObject : public CStreamParticleObject
+{
+public:
+	CStreamExplosionObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles);
+	virtual ~CStreamExplosionObject();
 };

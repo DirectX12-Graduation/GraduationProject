@@ -433,6 +433,12 @@ void CCannonFactory::RotateCannon(WPARAM wParam)
 	m_pInteractedCannon->RotateCannon(&xmf3RotateAxis, fAngle);
 }
 
+XMFLOAT3& CCannonFactory::GetCannonPosition()
+{
+	if (!m_pInteractedCannon) return XMFLOAT3(0.0f, 0.0f, 0.0f);
+	return m_pInteractedCannon->GetCannonball()->GetPosition();
+}
+
 ///
 
 void CMonsterFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext)
@@ -643,3 +649,56 @@ void CUIFactory::SetTargetMonster(CGameObject* pObject)
 	dynamic_cast<CUIObject*>(_gameObjects[1])->SetTarget(pObject);
 }
 
+///////////////////////////////
+
+void CParticleFactory::BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext)
+{
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
+
+	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1, 0, 0);
+	pTexture->LoadTextureFromFile(pd3dDevice, pd3dCommandList, L"../Assets/Image/Effect/Fire0.dds", 0);
+
+	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, Signature::Graphics::particle_texture, true);
+
+	CMaterial* pMaterial = new CMaterial(1);
+	pMaterial->SetTexture(pTexture);
+	XMFLOAT3 xmf3Position = { 0.0f,0.0f,0.0f };
+	XMFLOAT2 xmf2Size = { 10.0f,10.0f };
+	CParticleMesh* ParticleMesh = new CParticleMesh(pd3dDevice, pd3dCommandList, xmf3Position, xmf2Size);
+
+	float fxPitch = 1500.0f * 3.5f;
+	float fzPitch = 1500.0f * 3.5f;
+
+	float fTerrainWidth = pTerrain->GetWidth();
+	float fTerrainLength = pTerrain->GetLength();
+
+	int xObjects = int(fTerrainWidth / fxPitch);
+	int zObjects = int(fTerrainLength / fzPitch);
+
+
+	CParticleShader* pObjectShader = new CParticleShader();
+	DXGI_FORMAT pdxgiRtvFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
+	pObjectShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 3, pdxgiRtvFormats, DXGI_FORMAT_D32_FLOAT);
+	pMaterial->SetShader(pObjectShader);
+
+	CParticleSystem* pRotatingObject = NULL;
+	for (int i = 0, x = 0; x < xObjects; x++)
+	{
+		for (int z = 0; z < zObjects; z++)
+		{
+			float xPosition = x * fxPitch;
+			float zPosition = z * fzPitch;
+			float fHeight = pTerrain->GetHeight(xPosition, zPosition);
+
+			XMFLOAT3 xmfRange(10.0f, 10.0f, 10.0f);
+
+			XMFLOAT3 xmf3Position(xPosition, fHeight + 30.0f, zPosition);
+			pRotatingObject = new CBreathParticle(pd3dDevice, pd3dCommandList, xmf3Position, xmfRange, 500);
+
+			pRotatingObject->SetMesh(ParticleMesh);
+			pRotatingObject->SetMaterial(0, pMaterial);
+
+			_gameObjects.emplace_back(pRotatingObject);
+		}
+	}
+}

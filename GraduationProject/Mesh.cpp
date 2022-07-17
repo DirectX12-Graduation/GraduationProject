@@ -1638,15 +1638,86 @@ void CSkinnedMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void*
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 4, pVertexBufferViews);
 }
 
+CNavMesh::CNavMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Scale) : CMesh(pd3dDevice, pd3dCommandList)
+{
+	ifstream meshInfo("../Assets/Image/Terrain/SampleScene Exported NavMesh.txt");
+
+	string s;
+	while (meshInfo >> s) {
+		if (s.compare("vCount") == 0) {
+			meshInfo >> m_nVertices;
+			m_pxmf3Positions = new XMFLOAT3[m_nVertices];
+			break;
+		}
+	}
+
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	m_xmf3Scale = xmf3Scale;
+
+	float fHeight = 0.0f, fMinHeight = +FLT_MAX, fMaxHeight = -FLT_MAX;
+
+	float x, y, z;
+	for (int i = 0; i < m_nVertices; ++i) {
+		meshInfo >> s >> x >> y >> z;
+		if (s.compare("v") != 0) break;
+		//m_pxmf3Positions[i] = XMFLOAT3((x * m_xmf3Scale.x), 100, (z * m_xmf3Scale.z));
+		m_pxmf3Positions[i] = XMFLOAT3(x, y, z);
+	}
+
+	m_pd3dPositionBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf3Positions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+
+	m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+	m_d3dPositionBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dPositionBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
+
+
+	// 이게 맞나?
+	m_nSubMeshes = 1;
+	m_pnSubSetIndices = new int[m_nSubMeshes];
+	m_ppnSubSetIndices = new UINT * [m_nSubMeshes];
+
+	m_ppd3dSubSetIndexBuffers = new ID3D12Resource * [m_nSubMeshes];
+	m_ppd3dSubSetIndexUploadBuffers = new ID3D12Resource * [m_nSubMeshes];
+	m_pd3dSubSetIndexBufferViews = new D3D12_INDEX_BUFFER_VIEW[m_nSubMeshes];
+
+	while (meshInfo >> s) {
+		if (s.compare("fCount") == 0) {
+			meshInfo >> m_pnSubSetIndices[0];
+			m_pnSubSetIndices[0] *= 3;
+			m_ppnSubSetIndices[0] = new UINT[m_pnSubSetIndices[0]];
+			break;
+		}
+	}
+
+	for (int i = 0; i < m_pnSubSetIndices[0];) {
+		meshInfo >> s >> x >> y >> z;
+		if (s.compare("f") != 0) break;
+		m_ppnSubSetIndices[0][i++] = x - 1;
+		m_ppnSubSetIndices[0][i++] = y - 1;
+		m_ppnSubSetIndices[0][i++] = z - 1;
+	}
+
+	m_ppd3dSubSetIndexBuffers[0] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[0], sizeof(UINT) * m_pnSubSetIndices[0], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_ppd3dSubSetIndexUploadBuffers[0]);
+
+	m_pd3dSubSetIndexBufferViews[0].BufferLocation = m_ppd3dSubSetIndexBuffers[0]->GetGPUVirtualAddress();
+	m_pd3dSubSetIndexBufferViews[0].Format = DXGI_FORMAT_R32_UINT;
+	m_pd3dSubSetIndexBufferViews[0].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[0];
+}
+
+CNavMesh::~CNavMesh()
+{
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-CParticleMesh::CParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles) : CMesh(pd3dDevice, pd3dCommandList)
+CStreamParticleMesh::CStreamParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime, UINT nMaxParticles) : CMesh(pd3dDevice, pd3dCommandList)
 {
 	CreateVertexBuffer(pd3dDevice, pd3dCommandList, xmf3Position, xmf3Velocity, xmf3Acceleration, xmf3Color, xmf2Size, fLifetime);
 	CreateStreamOutputBuffer(pd3dDevice, pd3dCommandList, nMaxParticles);
 }
 
-void CParticleMesh::CreateVertexBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime)
+void CStreamParticleMesh::CreateVertexBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size, float fLifetime)
 {
 	m_nVertices = 1;
 	m_nStride = sizeof(CParticleVertex);
@@ -1669,7 +1740,7 @@ void CParticleMesh::CreateVertexBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	m_d3dPositionBufferView.SizeInBytes = m_nStride * m_nVertices;
 }
 
-void CParticleMesh::CreateStreamOutputBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nMaxParticles)
+void CStreamParticleMesh::CreateStreamOutputBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nMaxParticles)
 {
 	m_nMaxParticles = nMaxParticles;
 
@@ -1699,7 +1770,7 @@ void CParticleMesh::CreateStreamOutputBuffer(ID3D12Device* pd3dDevice, ID3D12Gra
 #endif
 }
 
-CParticleMesh::~CParticleMesh()
+CStreamParticleMesh::~CStreamParticleMesh()
 {
 	if (m_pd3dStreamOutputBuffer) m_pd3dStreamOutputBuffer->Release();
 	if (m_pd3dDrawBuffer) m_pd3dDrawBuffer->Release();
@@ -1714,7 +1785,7 @@ CParticleMesh::~CParticleMesh()
 #endif
 }
 
-void CParticleMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState)
+void CStreamParticleMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState)
 {
 	if (nPipelineState == 0)
 	{
@@ -1742,7 +1813,7 @@ void CParticleMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void
 	}
 }
 
-void CParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet, int nPipelineState)
+void CStreamParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet, int nPipelineState)
 {
 	if (nPipelineState == 0)
 	{
@@ -1779,7 +1850,7 @@ void CParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubS
 
 #define _WITH_DEBUG_STREAM_OUTPUT_VERTICES
 
-void CParticleMesh::OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState)
+void CStreamParticleMesh::OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext, int nPipelineState)
 {
 	if (nPipelineState == 0)
 	{
@@ -1802,14 +1873,41 @@ void CParticleMesh::OnPostRender(ID3D12GraphicsCommandList* pd3dCommandList, voi
 		_stprintf_s(pstrDebug, 256, _T("Stream Output Vertices = %d\n"), m_nVertices);
 		OutputDebugString(pstrDebug);
 #endif
-		if (m_nVertices == 0) m_bStart = true;
+		if (m_nVertices == 0) {
+			m_bStart = true;
+		//	::gnPatricleMode = 0x00;
+		}
+		//if (m_nVertices >= MAX_PARTICLES) ::gnPatricleMode = 0x30;
+		//else ::gnPatricleMode = 0x00;
 		//if ((m_nVertices == 0) || (m_nVertices >= MAX_PARTICLES)) m_bStart = true;
 	}
 }
 
-void CParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void CStreamParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &m_d3dPositionBufferView);
 	pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CParticleMesh::CParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT2 xmf2Size) : CMesh(pd3dDevice, pd3dCommandList)
+{
+	m_nVertices = 1;
+	m_nStride = sizeof(CBillboardVertex);
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+	CBillboardVertex* pVertices = new CBillboardVertex[1];
+	pVertices[0] = CBillboardVertex(xmf3Position, xmf2Size);
+
+	m_pd3dPositionBuffer = CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+
+	m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+	m_d3dPositionBufferView.StrideInBytes = m_nStride;
+	m_d3dPositionBufferView.SizeInBytes = m_nStride * m_nVertices;
+}
+
+CParticleMesh::~CParticleMesh()
+{
 }

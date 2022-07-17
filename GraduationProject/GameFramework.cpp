@@ -388,6 +388,7 @@ void CGameFramework::UpdateShaderVariables()
 {
 	m_pcbMappedFrameworkInfo->m_fCurrentTime = m_GameTimer.GetTotalTime();
 	m_pcbMappedFrameworkInfo->m_fElapsedTime = m_GameTimer.GetTimeElapsed();
+	m_pcbMappedFrameworkInfo->m_nParticleMode = ::gnPatricleMode;
 
 	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbFrameworkInfo->GetGPUVirtualAddress();
 	m_pd3dCommandList->SetGraphicsRootConstantBufferView(Signature::Graphics::gfw, d3dGpuVirtualAddress);
@@ -478,11 +479,10 @@ void CGameFramework::OnProcessingKeyboardMessage
 			ChangeSwapChainState();
 			break;
 		case 'R':
-			m_pcbMappedFrameworkInfo->m_nRenderMode = 0x00;
 			m_pcbMappedFrameworkInfo->m_nBlurMode = 0x00;
 			break;
 		case 'B':
-			m_pcbMappedFrameworkInfo->m_nBlurMode = DEBUG_BLURRING;
+			//m_pcbMappedFrameworkInfo->m_nBlurMode = DEBUG_BLURRING;
 			break;
 		case 'G':
 			m_pPlayer->SetPosition(XMFLOAT3(9687.0f, 6.0f, 26238.0f));
@@ -496,6 +496,9 @@ void CGameFramework::OnProcessingKeyboardMessage
 		
 		case 'C':
 			::gbCollisionDebug = !::gbCollisionDebug;
+			break;
+		case 'F':
+			::gnPatricleMode = 0x30;
 			break;
 		default:
 			break;
@@ -599,8 +602,8 @@ void CGameFramework::UpdatePlayerMove(const DWORD& dwDirection)
 bool CGameFramework::IsPlayerMove(const DWORD& dwDirection, const DirectX::XMFLOAT3& xmf3Shift)
 {
 	if (!dwDirection) return false;
-	if (!m_pScene->CheckPlayerByObjectBB(xmf3Shift)) return false;
-	if (!m_pScene->CheckPlayerInScene(xmf3Shift)) return false;
+	//if (!m_pScene->CheckPlayerByObjectBB(xmf3Shift)) return false;
+	//if (!m_pScene->CheckPlayerInScene(xmf3Shift)) return false;
 	return true;
 }
 

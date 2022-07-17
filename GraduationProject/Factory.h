@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "Camera.h"
 #include "GameObject.h"
+#include "ParticleSystem.h"
+#include "ParticleShader.h"
 
 class CFactory
 {
@@ -42,6 +44,7 @@ public:
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
 	void ActiveCannon();
 	void RotateCannon(WPARAM wParam);
+	XMFLOAT3& GetCannonPosition();
 };
 
 class CMonsterFactory : public CFactory
@@ -71,3 +74,14 @@ public:
 private:
 	CCamera* m_pCamera = NULL;
 };
+
+class CParticleFactory : public CFactory
+{
+public:
+	CParticleFactory() {};
+	~CParticleFactory() {};
+
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+	virtual void SetObjectCollision(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) {};
+};
+

@@ -93,7 +93,7 @@ public:
 
 class CBillboardVertex
 {
-protected:
+public:
 	CBillboardVertex() {}
 	CBillboardVertex(XMFLOAT3 xmf3Position, XMFLOAT2 xmf2Size) {
 		m_xmf3Position = xmf3Position;
