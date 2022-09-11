@@ -168,6 +168,12 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack);
 					m_pSkinnedAnimationController->SetAttackEnable(true);
 					SetDamage(50.0f);
+
+					if (sounds[CAnimPlayer::loop_sound::walking]) {
+						PlaySound(NULL, NULL, SND_PURGE);
+						sounds[CAnimPlayer::loop_sound::walking] = false;
+					}
+					PlaySound(_T("../Assets/Sound/sword_slash.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 					break;
 	
 				case 'W':
@@ -195,6 +201,11 @@ bool CAnimPlayer::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 					m_pSkinnedAnimationController->SetAttackEnable(true);
 					SetDamage(70.0f);
 
+					if (sounds[CAnimPlayer::loop_sound::walking]) {
+						PlaySound(NULL, NULL, SND_PURGE);
+						sounds[CAnimPlayer::loop_sound::walking] = false;
+					}
+					PlaySound(_T("../Assets/Sound/sword_slash.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 					break;
 				case '2':
 					m_pSkinnedAnimationController->SwitchAnimationState(track_name::attack_magic);

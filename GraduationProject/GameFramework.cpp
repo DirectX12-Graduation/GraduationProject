@@ -637,6 +637,20 @@ void CGameFramework::UpdatePlayerMove(const DWORD& dwDirection)
 			if (curTrackNum != track_name::idle)
 				m_pPlayer->m_pSkinnedAnimationController->SwitchAnimationState(track_name::idle);
 		}
+
+		curTrackNum = m_pPlayer->m_pSkinnedAnimationController->GetCurrentTrackNum();
+		if (curTrackNum != idle) {
+			if (!((CAnimPlayer*)m_pPlayer)->sounds[CAnimPlayer::loop_sound::walking]) {
+				PlaySound(_T("../Assets/Sound/footsteps.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP | SND_NOSTOP);
+				((CAnimPlayer*)m_pPlayer)->sounds[CAnimPlayer::loop_sound::walking] = true;
+			}
+		}
+		else {
+			if (((CAnimPlayer*)m_pPlayer)->sounds[CAnimPlayer::loop_sound::walking]) {
+				PlaySound(NULL, NULL, SND_PURGE);
+				((CAnimPlayer*)m_pPlayer)->sounds[CAnimPlayer::loop_sound::walking] = false;
+			}
+		}
 	}
 }
 

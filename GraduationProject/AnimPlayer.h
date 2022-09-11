@@ -49,6 +49,16 @@ public:
 	virtual void DecreaseHp(float val);
 	virtual void InitInteraction();
 
+
+
+	enum loop_sound
+	{
+		walking,
+		length
+	};
+
+	bool sounds[loop_sound::length]{ false };
+
 private:
 	bool isMove = false;
 };
