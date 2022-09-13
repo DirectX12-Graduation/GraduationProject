@@ -592,6 +592,8 @@ void CMonsterFactory::InitMonsters()
 		monster->SetHp(monster->GetMaxHp());
 		monster->m_xmf4x4ToParent = monster->GetInitMatrix();
 		monster->m_pSkinnedAnimationController->SwitchAnimationState(monster->m_pSkinnedAnimationController->GetIdleNum());
+		monster->m_pSkinnedAnimationController->SetIsDead(false);
+		monster->m_pSkinnedAnimationController->InitLoopEnd();
 	}
 }
 

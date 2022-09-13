@@ -234,4 +234,6 @@ public:
 	void SetAnimationTypes(bool* types);
 	void SetAnimationTracks(bool* isSetNumberOne);
 	void SwitchAnimationState(int nType);
+
+	void InitLoopEnd();
 };

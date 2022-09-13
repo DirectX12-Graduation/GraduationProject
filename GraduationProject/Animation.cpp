@@ -433,6 +433,21 @@ void CAnimationController::SwitchAnimationState(int nType)
 		InitAnimationTime();
 }
 
+void CAnimationController::InitLoopEnd()
+{
+	if (m_pAnimationTracks)
+	{
+		for (int i = 0; i < m_nAnimationTracks; i++)
+		{
+			CAnimationSet* pAnimationSet = m_pAnimationSets->m_ppAnimationSets[m_pAnimationTracks[i].m_nAnimationSet];
+			if (pAnimationSet->IsOnceLoopEnd())
+			{
+				pAnimationSet->m_bLoopEnd = false;
+			}
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CLoadedModelInfo::~CLoadedModelInfo()
